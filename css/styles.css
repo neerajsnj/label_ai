@@ -1,0 +1,169 @@
+/* LabelCheck AI — Custom Styles & Animations */
+
+:root {
+  --primary: #0f766e;
+  --primary-dark: #115e59;
+  --accent: #2563eb;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Scanner Animation Beam */
+.scanner-container {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+
+.scanner-beam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0) 0%, rgba(16, 185, 129, 1) 50%, rgba(16, 185, 129, 0) 100%);
+  box-shadow: 0 0 15px 3px rgba(16, 185, 129, 0.75);
+  animation: scanMove 2.2s ease-in-out infinite alternate;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@keyframes scanMove {
+  0% {
+    top: 4%;
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 94%;
+    opacity: 0.3;
+  }
+}
+
+/* Score Circle Gauge */
+.score-circle-wrap {
+  position: relative;
+  width: 130px;
+  height: 130px;
+}
+
+.score-circle-svg {
+  transform: rotate(-90deg);
+}
+
+.score-circle-bg {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 8;
+}
+
+.score-circle-progress {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease;
+}
+
+/* Status Card Glows */
+.status-glow-green {
+  box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.25);
+  border-color: #10b981 !important;
+}
+
+.status-glow-yellow {
+  box-shadow: 0 0 20px -3px rgba(245, 158, 11, 0.25);
+  border-color: #f59e0b !important;
+}
+
+.status-glow-red {
+  box-shadow: 0 0 20px -3px rgba(239, 68, 68, 0.25);
+  border-color: #ef4444 !important;
+}
+
+/* Badge Styles */
+.badge-found {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-missing {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.badge-unclear {
+  background-color: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-verify {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+/* Tab Navigation Active State */
+.nav-tab.active {
+  color: #0f766e;
+  border-bottom: 2px solid #0f766e;
+  font-weight: 600;
+}
+
+/* Pulse animation for live detection */
+.pulse-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulseDot 1.8s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Dropzone Hover Effects */
+.dropzone-active {
+  border-color: #0f766e !important;
+  background-color: #f0fdfa !important;
+}
+
+/* Print Rules */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
