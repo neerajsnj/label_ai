@@ -71,39 +71,70 @@ function switchTab(tabId) {
 }
 
 /**
- * Render Quick Test Sample Buttons
+ * Render Quick Test Sample Buttons in Horizontally Scrollable Layout
  */
 function renderSamplePills() {
   const container = document.getElementById('samples-container');
   if (!container) return;
 
   container.innerHTML = SamplePackagedCommodities.map(sample => {
-    let badgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    let badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     let dotColor = 'bg-emerald-500';
+    let statusText = 'Compliant';
 
     if (sample.expectedStatus === 'yellow') {
-      badgeClass = 'bg-amber-100 text-amber-800 border-amber-300';
+      badgeClass = 'bg-amber-50 text-amber-700 border-amber-200';
       dotColor = 'bg-amber-500';
+      statusText = 'Needs Verification';
     } else if (sample.expectedStatus === 'red') {
-      badgeClass = 'bg-rose-100 text-rose-800 border-rose-300';
+      badgeClass = 'bg-rose-50 text-rose-700 border-rose-200';
       dotColor = 'bg-rose-500';
+      statusText = 'Non-Compliant';
     }
 
     return `
-      <button onclick="loadSampleCommodity('${sample.id}')" class="text-left p-2.5 rounded-lg border border-slate-200 hover:border-teal-500 bg-slate-50 hover:bg-teal-50/40 transition group flex flex-col justify-between">
+      <div onclick="loadSampleCommodity('${sample.id}')" class="quick-test-card group">
         <div>
-          <div class="flex items-center justify-between gap-1 mb-1">
-            <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${badgeClass}">
+          <div class="flex items-center justify-between gap-1 mb-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeClass}">
               <span class="inline-block w-1.5 h-1.5 rounded-full ${dotColor} mr-1"></span>${sample.expectedScore}%
             </span>
-            <span class="text-[10px] text-slate-400 uppercase font-medium">${sample.category}</span>
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wide bg-white px-2 py-0.5 rounded border border-slate-200">${sample.category}</span>
           </div>
-          <p class="text-xs font-bold text-slate-800 group-hover:text-teal-700 leading-tight">${sample.name}</p>
+          <h4 class="text-xs font-bold text-slate-900 group-hover:text-teal-700 leading-snug transition-colors line-clamp-1">${sample.name}</h4>
+          <p class="text-[11px] text-slate-500 mt-1 line-clamp-2 leading-tight">${sample.subtitle}</p>
         </div>
-        <p class="text-[10px] text-slate-500 mt-1 line-clamp-1">${sample.subtitle}</p>
-      </button>
+        <div class="mt-2.5 pt-2 border-t border-slate-200/80 flex items-center justify-between text-[10px]">
+          <span class="font-semibold text-slate-600">${statusText}</span>
+          <span class="font-bold text-teal-700 group-hover:translate-x-0.5 transition-transform flex items-center">
+            Test <i data-lucide="arrow-right" class="w-3 h-3 ml-0.5 inline"></i>
+          </span>
+        </div>
+      </div>
     `;
   }).join('');
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+/**
+ * Scroll Quick Test Container Horizontally
+ */
+function scrollQuickTest(amount) {
+  const container = document.getElementById('samples-container');
+  if (container) {
+    container.scrollBy({ left: amount, behavior: 'smooth' });
+  }
+}
+
+/**
+ * Toggle Mobile Navigation Dropdown
+ */
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-nav');
+  if (menu) {
+    menu.classList.toggle('hidden');
+  }
 }
 
 /**
