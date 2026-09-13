@@ -225,7 +225,7 @@ async function runOcrPipeline(sampleFallback = null) {
     }
 
     // Automatically trigger compliance rule evaluation
-    evaluateCompliance();
+    evaluateCompliance(false);
 
   } catch (err) {
     console.error('OCR pipeline error:', err);
@@ -241,7 +241,7 @@ async function runOcrPipeline(sampleFallback = null) {
 /**
  * Evaluate Compliance under Legal Metrology Rules, 2011
  */
-function evaluateCompliance() {
+function evaluateCompliance(autoSwitch = false) {
   const rawText = document.getElementById('ocr-raw-text').value;
   if (!rawText.trim()) {
     alert('Please upload an image or enter packaging text before running the compliance audit.');
@@ -268,17 +268,19 @@ function evaluateCompliance() {
   // Save to audit history
   adminStore.addScanRecord(auditResult);
 
-  // Update UI Elements in Dashboard
+  // Update UI Elements in Dashboard and Scanner Views
   updateDashboardUI(auditResult);
 
-  // Switch to Dashboard Tab to display result
-  switchTab('dashboard');
+  // Switch to Dashboard Tab if explicitly requested
+  if (autoSwitch) {
+    switchTab('dashboard');
+  }
 
   showToast(`Compliance Audit Complete: ${auditResult.score}% (${auditResult.statusLabel})`);
 }
 
 /**
- * Update the Compliance Dashboard with audit findings
+ * Update the Compliance Dashboard & Scanner Views with audit findings
  */
 function updateDashboardUI(data) {
   // Score gauge circle
@@ -290,11 +292,15 @@ function updateDashboardUI(data) {
   const verdictDesc = document.getElementById('verdict-desc');
   const commPill = document.getElementById('verdict-commodity-pill');
   const navBadge = document.getElementById('nav-score-badge');
+  const headerPill = document.getElementById('header-compliance-pill');
+  const headerText = document.getElementById('header-compliance-text');
 
-  const circumference = 2 * Math.PI * 54; // ~339.292
+  const radius = (scoreBar && scoreBar.r && scoreBar.r.baseVal && scoreBar.r.baseVal.value) || 51;
+  const circumference = 2 * Math.PI * radius;
   const offset = circumference - (data.score / 100) * circumference;
 
   if (scoreBar) {
+    scoreBar.style.strokeDasharray = circumference;
     scoreBar.style.strokeDashoffset = offset;
     scoreBar.style.stroke = data.overallStatus === 'green' ? '#10b981' :
       (data.overallStatus === 'yellow' ? '#f59e0b' : '#ef4444');
@@ -305,8 +311,112 @@ function updateDashboardUI(data) {
   if (navBadge) {
     navBadge.classList.remove('hidden');
     navBadge.textContent = `${data.score}%`;
-    navBadge.className = data.overallStatus === 'green' ? 'text-[11px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800' :
-      (data.overallStatus === 'yellow' ? 'text-[11px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800' : 'text-[11px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800');
+    navBadge.className = data.overallStatus === 'green' ? 'ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200' :
+      (data.overallStatus === 'yellow' ? 'ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200' : 'ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200');
+  }
+
+  if (headerText) {
+    const statusWord = data.overallStatus === 'green' ? 'COMPLIANT' : (data.overallStatus === 'yellow' ? 'VERIFY' : 'NON-COMPLIANT');
+    headerText.textContent = `${data.score}% ${statusWord}`;
+  }
+  if (headerPill) {
+    if (data.overallStatus === 'green') {
+      headerPill.className = 'header-score-badge cursor-pointer bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 transition';
+    } else if (data.overallStatus === 'yellow') {
+      headerPill.className = 'header-score-badge cursor-pointer bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 transition';
+    } else {
+      headerPill.className = 'header-score-badge cursor-pointer bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 transition';
+    }
+  }
+
+  // Update Hero / Dashboard Status Section Cards
+  const heroScore = document.getElementById('hero-compliance-score');
+  if (heroScore) {
+    heroScore.textContent = `${data.score}%`;
+    heroScore.className = `hero-metric-value mt-0.5 ${data.overallStatus === 'green' ? 'text-emerald-600' : (data.overallStatus === 'yellow' ? 'text-amber-600' : 'text-rose-600')}`;
+  }
+
+  const heroViolations = document.getElementById('hero-violations-count');
+  if (heroViolations) {
+    const vCount = data.counts.missing + data.counts.unclear;
+    heroViolations.textContent = vCount;
+    heroViolations.className = `hero-metric-value mt-0.5 ${vCount === 0 ? 'text-emerald-600' : (data.counts.missing > 0 ? 'text-rose-600' : 'text-amber-600')}`;
+  }
+
+  const heroScanned = document.getElementById('hero-scanned-count');
+  if (heroScanned) {
+    heroScanned.textContent = adminStore.history.length;
+  }
+
+  // Update Scanner View Live Compliance Card
+  const scCard = document.getElementById('scanner-compliance-card');
+  if (scCard) {
+    scCard.className = `scanner-panel border-2 bg-white transition-all ${data.overallStatus === 'green' ? 'border-emerald-500 status-glow-green' : (data.overallStatus === 'yellow' ? 'border-amber-500 status-glow-yellow' : 'border-rose-500 status-glow-red')}`;
+  }
+
+  const scScoreTitle = document.getElementById('scanner-result-score-title');
+  if (scScoreTitle) {
+    const statusWord = data.overallStatus === 'green' ? 'COMPLIANT' : (data.overallStatus === 'yellow' ? 'NEEDS VERIFICATION' : 'NON-COMPLIANT');
+    scScoreTitle.textContent = `${data.score}% ${statusWord}`;
+    scScoreTitle.className = `text-2xl font-black mt-0.5 tracking-tight ${data.overallStatus === 'green' ? 'text-emerald-600' : (data.overallStatus === 'yellow' ? 'text-amber-600' : 'text-rose-600')}`;
+  }
+
+  const scStatusText = document.getElementById('scanner-result-status-text');
+  if (scStatusText) {
+    scStatusText.textContent = data.statusLabel;
+  }
+
+  const scBadge = document.getElementById('scanner-result-badge');
+  if (scBadge) {
+    if (data.overallStatus === 'green') {
+      scBadge.className = 'px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300';
+      scBadge.textContent = 'PASS';
+    } else if (data.overallStatus === 'yellow') {
+      scBadge.className = 'px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300';
+      scBadge.textContent = 'VERIFY';
+    } else {
+      scBadge.className = 'px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300';
+      scBadge.textContent = 'FAIL';
+    }
+  }
+
+  const statPassed = document.getElementById('scanner-stat-passed');
+  if (statPassed) statPassed.textContent = data.counts.found;
+
+  const statWarnings = document.getElementById('scanner-stat-warnings');
+  if (statWarnings) statWarnings.textContent = data.counts.unclear + data.counts.manualVerify;
+
+  const statCritical = document.getElementById('scanner-stat-critical');
+  if (statCritical) statCritical.textContent = data.counts.missing;
+
+  const statMissing = document.getElementById('scanner-stat-missing');
+  if (statMissing) statMissing.textContent = data.counts.missing;
+
+  // Scanner Issues list
+  const issuesContainer = document.getElementById('scanner-issues-list');
+  if (issuesContainer) {
+    const issues = data.results.filter(r => r.status !== 'found');
+    if (issues.length === 0) {
+      issuesContainer.innerHTML = `
+        <div class="flex items-center space-x-2 text-emerald-700 bg-emerald-50/70 p-2 rounded-lg border border-emerald-200">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600 flex-shrink-0"></i>
+          <span class="text-[11px] font-medium">All mandatory statutory declarations verified under Rule 6.</span>
+        </div>
+      `;
+    } else {
+      issuesContainer.innerHTML = issues.slice(0, 3).map(iss => {
+        const isCrit = iss.severity === 'critical' || iss.status === 'missing';
+        return `
+          <div class="flex items-start space-x-2 ${isCrit ? 'text-rose-700 bg-rose-50/70 border-rose-200' : 'text-amber-700 bg-amber-50/70 border-amber-200'} p-2 rounded-lg border">
+            <i data-lucide="${isCrit ? 'alert-octagon' : 'alert-triangle'}" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+            <div class="min-w-0">
+              <span class="font-bold text-[11px]">${iss.name} (${iss.legalRef})</span>
+              <p class="text-[10px] text-slate-600 line-clamp-1">${iss.description || iss.notes}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
   }
 
   // Color Verdict Badge & Glow
@@ -345,6 +455,8 @@ function updateDashboardUI(data) {
 
   // Render Corrective Actions
   renderCorrectiveActions(data.results);
+
+  if (window.lucide) window.lucide.createIcons();
 }
 
 /**
@@ -826,7 +938,7 @@ function initEventListeners() {
 
   // Run audit CTA
   const btnRun = document.getElementById('btn-run-audit');
-  if (btnRun) btnRun.addEventListener('click', evaluateCompliance);
+  if (btnRun) btnRun.addEventListener('click', () => evaluateCompliance(true));
 
   // PDF report CTA
   const btnPdf = document.getElementById('btn-download-pdf');
