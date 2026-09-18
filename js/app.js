@@ -244,7 +244,7 @@ function loadSampleCommodity(sampleId) {
         displayImageOnCanvas(img1, sample.regions);
         renderMultiSurfaceStrip();
         combineAndSetOcrText();
-        evaluateCompliance(false);
+        presentPostScanDecisionStep();
       };
       img2.src = dataUrl2;
     };
@@ -1380,9 +1380,28 @@ function initEventListeners() {
     });
   }
 
+  // Staged scan permission card buttons
+  const btnConfirmScan = document.getElementById('btn-confirm-start-scan');
+  if (btnConfirmScan) btnConfirmScan.addEventListener('click', startUserConfirmedScan);
+
+  const btnCancelStaged = document.getElementById('btn-cancel-staged-photos');
+  if (btnCancelStaged) btnCancelStaged.addEventListener('click', clearStagedPhotos);
+
+  // Post-scan decision card buttons
+  const btnDecisionFinalize = document.getElementById('btn-decision-finalize');
+  if (btnDecisionFinalize) btnDecisionFinalize.addEventListener('click', () => finalizeComplianceAudit(false));
+
   // Run audit CTA
   const btnRun = document.getElementById('btn-run-audit');
-  if (btnRun) btnRun.addEventListener('click', () => evaluateCompliance(true));
+  if (btnRun) {
+    btnRun.addEventListener('click', () => {
+      if (state.auditPhase === 'staged') {
+        startUserConfirmedScan();
+      } else {
+        finalizeComplianceAudit(true);
+      }
+    });
+  }
 
   // PDF report CTA
   const btnPdf = document.getElementById('btn-download-pdf');
@@ -1458,10 +1477,10 @@ function handleUploadedFiles(fileList, isAppend = false) {
           state.currentImageSource = active.imgElement;
           state.currentImageDataUrl = active.dataUrl;
 
-          displayImageOnCanvas(active.imgElement, active.regions);
+          displayImageOnCanvas(active.imgElement, active.regions || []);
           renderMultiSurfaceStrip();
-          runMultiImageOcrPipeline();
-          showToast(`Added ${newEntries.length} image surface${newEntries.length > 1 ? 's' : ''}`);
+          showScanPermissionCard();
+          showToast(`${newEntries.length} photo${newEntries.length > 1 ? 's' : ''} staged. Grant permission to scan.`);
         }
       };
       img.src = dataUrl;
@@ -1541,7 +1560,8 @@ function captureCameraSnapshot(isAppend = false) {
 
     displayImageOnCanvas(img, []);
     renderMultiSurfaceStrip();
-    runMultiImageOcrPipeline();
+    showScanPermissionCard();
+    showToast(`Captured ${surfaceName}. Grant permission to scan.`);
   };
   img.src = dataUrl;
 }
