@@ -310,16 +310,64 @@
                 <i data-lucide="camera" class="w-3.5 h-3.5 text-slate-600"></i>
                 <span>Use Camera</span>
               </button>
-              <input type="file" id="file-input" accept="image/*" class="hidden">
+              <input type="file" id="file-input" accept="image/*" multiple class="hidden">
+              <input type="file" id="add-angle-input" accept="image/*" multiple class="hidden">
               <button onclick="document.getElementById('file-input').click()" class="flex items-center space-x-1.5 text-xs bg-teal-50 hover:bg-teal-100 text-teal-800 font-semibold px-3 py-2 rounded-lg border border-teal-200 transition">
                 <i data-lucide="image-plus" class="w-3.5 h-3.5 text-teal-600"></i>
-                <span>Browse File</span>
+                <span>Browse Images</span>
+              </button>
+              <button id="btn-add-angle-nav" onclick="document.getElementById('add-angle-input').click()" class="flex items-center space-x-1.5 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold px-3 py-2 rounded-lg border border-emerald-200 transition">
+                <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
+                <span>+ Add Bottle Cap / Angle</span>
               </button>
             </div>
           </div>
 
           <!-- Large Package Image / Preview Area & Drag-and-Drop Area -->
           <div class="scanner-panel">
+
+            <!-- Stamp Guidance Proviso Banner (Displayed when "refer to stamp on bottle" is detected) -->
+            <div id="stamp-guidance-banner" class="hidden mb-3 p-3 rounded-xl bg-amber-50/90 border border-amber-300 text-left">
+              <div class="flex items-start space-x-2.5">
+                <div class="p-1.5 rounded-lg bg-amber-100 text-amber-800 mt-0.5 flex-shrink-0">
+                  <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                </div>
+                <div class="flex-1 text-xs">
+                  <div class="flex items-center justify-between gap-1">
+                    <span class="font-bold text-amber-900">Rule 6 Proviso: "Refer to Stamp on Bottle / Cap" Detected</span>
+                    <span class="text-[10px] uppercase tracking-wider font-extrabold bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">Action Recommended</span>
+                  </div>
+                  <p class="text-amber-800 text-[11px] mt-1 leading-relaxed">
+                    The label directs consumers and inspectors to the bottle cap, crown, or neck for MRP, Date of Manufacture, or Batch Number (permitted under Rule 6(1) Proviso). Add a photo of the bottle top / cap stamp to complete statutory compliance evaluation.
+                  </p>
+                  <div class="mt-2.5 flex items-center space-x-2">
+                    <button onclick="document.getElementById('add-angle-input').click()" class="text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shadow-xs transition flex items-center space-x-1.5">
+                      <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+                      <span>+ Add Bottle Cap / Stamp Photo</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Multi-Surface Thumbnail Carousel / Gallery -->
+            <div id="multi-surface-strip" class="hidden mb-3 bg-slate-50/80 p-2.5 rounded-xl border border-slate-200">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                  <i data-lucide="layers" class="w-3.5 h-3.5 text-teal-700"></i>
+                  <span class="text-xs font-bold text-slate-800">Scanned Packaging Surfaces / Angles</span>
+                  <span id="surface-count-badge" class="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-teal-100 text-teal-800 border border-teal-200">1 Angle</span>
+                </div>
+                <button onclick="document.getElementById('add-angle-input').click()" class="flex items-center space-x-1 text-[11px] font-bold text-teal-700 hover:text-teal-900 bg-white hover:bg-teal-50 px-2.5 py-1 rounded-md border border-teal-200 shadow-xs transition">
+                  <i data-lucide="plus" class="w-3 h-3"></i>
+                  <span>+ Add Bottle Cap / Top Stamp</span>
+                </button>
+              </div>
+              <div id="multi-surface-thumbnails" class="flex items-center space-x-2.5 overflow-x-auto pb-1">
+                <!-- Thumbnails rendered dynamically -->
+              </div>
+            </div>
+
             <div id="drop-zone" class="dropzone-container">
 
               <!-- Empty State Upload Prompt -->
@@ -328,13 +376,13 @@
                   <i data-lucide="upload-cloud" class="w-8 h-8"></i>
                 </div>
                 <div>
-                  <p class="text-sm font-bold text-slate-800">Drop packaging label image here, or click to upload</p>
-                  <p class="text-xs text-slate-500 mt-1">Supports high-resolution PNG, JPG, WEBP, or live camera capture</p>
+                  <p class="text-sm font-bold text-slate-800">Drop packaging label image(s) here, or click to upload</p>
+                  <p class="text-xs text-slate-500 mt-1">Supports multi-angle uploads (PNG, JPG, WEBP) or camera capture for Body + Cap / Stamp</p>
                 </div>
                 <div class="flex flex-wrap justify-center gap-2 pt-2">
-                  <span class="text-[11px] bg-white border border-slate-200 px-2.5 py-1 rounded-md text-slate-600 font-medium shadow-xs">Food Packaging</span>
-                  <span class="text-[11px] bg-white border border-slate-200 px-2.5 py-1 rounded-md text-slate-600 font-medium shadow-xs">Cosmetic Bottles</span>
-                  <span class="text-[11px] bg-white border border-slate-200 px-2.5 py-1 rounded-md text-slate-600 font-medium shadow-xs">Imported Cartons</span>
+                  <span class="text-[11px] bg-white border border-slate-200 px-2.5 py-1 rounded-md text-slate-600 font-medium shadow-xs">Bottle Labels & Cap Stamps</span>
+                  <span class="text-[11px] bg-white border border-slate-200 px-2.5 py-1 rounded-md text-slate-600 font-medium shadow-xs">Multi-Panel Cartons</span>
+                  <span class="text-[11px] bg-white border border-slate-200 px-2.5 py-1 rounded-md text-slate-600 font-medium shadow-xs">Front + Back Pouches</span>
                 </div>
               </div>
 
@@ -361,10 +409,14 @@
               <!-- Camera Video Stream (Hidden until activated) -->
               <div id="camera-stream-container" class="hidden relative w-full max-w-md">
                 <video id="camera-video" autoplay playsinline class="w-full rounded-xl border border-slate-300 shadow"></video>
-                <div class="flex justify-center space-x-3 mt-3">
+                <div class="flex flex-wrap justify-center gap-2 mt-3">
                   <button id="btn-capture-photo" class="btn-primary text-xs px-4 py-2 flex items-center space-x-1.5">
                     <i data-lucide="camera" class="w-4 h-4"></i>
                     <span>Capture Snapshot</span>
+                  </button>
+                  <button id="btn-capture-add-angle" class="btn-secondary text-xs px-3 py-2 flex items-center space-x-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300">
+                    <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-600"></i>
+                    <span>Capture as Another Angle / Cap</span>
                   </button>
                   <button id="btn-close-camera" class="btn-secondary text-xs px-4 py-2">
                     Cancel

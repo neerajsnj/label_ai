@@ -61,7 +61,7 @@ const LegalMetrologyRules = [
     description: 'Net quantity must be declared in standard units of weight, measure or number (e.g., g, kg, ml, l, m, N, units). Non-standard units (such as gms, gms., ml., kgs) are strictly prohibited.',
     correctiveAction: 'Declare net quantity in standard metric symbols: "g" for gram, "kg" for kilogram, "ml" or "mL" for millilitre, "l" or "L" for litre, or "N" for count. Avoid suffixes like "gms", "kilos", or trailing periods.',
     evaluate: function (text, category) {
-      const validSiPattern = /(?:net\s*(?:quantity|weight|volume|content|wt|vol|qty)?[:.\s-]*)?(\d+(?:\.\d+)?)\s*(kg|g|mg|l|ml|cl|ltr|meter|m|cm|mm|n|units|tablets|capsules|pcs|pieces)\b/i;
+      const validSiPattern = /(?:net\s*(?:quantity|weight|volume|content|wt|vol|qty)?[:.\s-]*)?(\d+(?:\.\d+)?)\s*(kg|g|mg|l|ml|cl|ltr|litre|litres|liter|liters|meter|m|cm|mm|n|units|tablets|capsules|pcs|pieces)\b/i;
       const prohibitedPattern = /(?:net\s*(?:quantity|wt|qty)?[:.\s-]*)?(\d+(?:\.\d+)?)\s*(gms\.?|kilos?|kgs\.?|ml\.|ltrs\.?|ct\.)\b/i;
 
       const nonStandardMatch = text.match(prohibitedPattern);
@@ -110,32 +110,37 @@ const LegalMetrologyRules = [
     severity: 'critical',
     weight: 15,
     applicableCategories: ['all'],
-    description: 'MRP must be stated in Indian Rupees (₹ or Rs.) and explicitly mention "inclusive of all taxes" (e.g. "MRP ₹ ... incl. of all taxes"). Overwriting or stickers concealing original MRP is illegal.',
-    correctiveAction: 'Print MRP clearly in the format: "MRP ₹ ... (incl. of all taxes)" or "Maximum Retail Price ₹ ... (inclusive of all taxes)". No additional fee above MRP can be charged.',
+    description: 'MRP must be stated in Indian Rupees (₹ or Rs.) and explicitly mention "inclusive of all taxes" (e.g. "MRP ₹ ... incl. of all taxes"). Rule 6(1) Proviso permits bottles/drinks to declare "Refer to stamp on bottle / cap" when price is stamped on cap or neck.',
+    correctiveAction: 'Print MRP clearly in the format: "MRP ₹ ... (incl. of all taxes)". For beverages where price is embossed on crown/neck/bottle, ensure "Refer to stamp on bottle" is clearly stated and stamped legible.',
     evaluate: function (text, category) {
       const mrpFullPattern = /(?:m\.?r\.?p\.?|max(?:imum)?\s*retail\s*price)[:\s]*(?:rs\.?|₹|inr)?\s*(\d+(?:\.\d{1,2})?)\s*(?:\([^\)]*taxes[^\)]*\)|incl(?:usive)?\.?\s*of\s*all\s*taxes)/i;
       const mrpPatternOnly = /(?:m\.?r\.?p\.?|max(?:imum)?\s*retail\s*price)[:\s]*(?:rs\.?|₹|inr)?\s*(\d+(?:\.\d{1,2})?)/i;
-      const currencyPattern = /(?:rs\.?|₹)\s*(\d+(?:\.\d{1,2})?)/i;
+      const currencyPattern = /(?:rs\.?|₹)\s*(\d+(?:\.\d{1,2})?)(?!\s*(?:\/|\s*per\s*)(?:g|gm|kg|ml|l|ltr|n|unit))/i;
+      const stampReferencePattern = /(?:refer\s*to\s*stamp(?:\s*on\s*(?:bottle|cap|neck|crown))?|stamp\s*on\s*(?:bottle|cap|neck|crown)|see\s*(?:cap|neck|crown|bottle|stamp)|for\s*m\.?r\.?p\.?\s*(?:refer|see)\s*stamp)/i;
+      const hasStampRef = stampReferencePattern.test(text);
+
+      // Strip USP declarations when searching for standalone currency so USP rate (e.g. ₹0.02/ml) isn't confused with product MRP
+      const textWithoutUsp = text.replace(/(?:unit\s*sale\s*price|u\.?s\.?p\.?)[:\s]*(?:rs\.?|₹|\u20b9|inr)?\s*\d+(?:\.\d{1,4})?\s*(?:\/|\s*per\s*)\s*(?:g|gm|kg|ml|l|ltr|n|unit|piece|item)\b/gi, '');
 
       const fullMatch = text.match(mrpFullPattern);
       if (fullMatch) {
         return {
           status: 'found',
-          extractedText: fullMatch[0].trim(),
+          extractedText: `${fullMatch[0].trim()}${hasStampRef ? ' (Verified via Bottle Stamp per Rule 6 Proviso)' : ''}`,
           confidence: 0.98,
-          notes: `MRP detected with mandatory "inclusive of all taxes" declaration: "${fullMatch[0].trim()}".`
+          notes: `MRP detected with mandatory tax declaration: "${fullMatch[0].trim()}".`
         };
       }
 
       const mrpMatch = text.match(mrpPatternOnly);
       if (mrpMatch) {
         const hasTaxClause = /incl(?:usive)?\.?\s*(?:of)?\s*(?:all)?\s*tax(?:es)?/i.test(text);
-        if (hasTaxClause) {
+        if (hasTaxClause || hasStampRef) {
           return {
             status: 'found',
-            extractedText: `${mrpMatch[0]} (incl. of taxes declared on label)`,
-            confidence: 0.9,
-            notes: `MRP amount ₹${mrpMatch[1]} and tax inclusion clause verified on label.`
+            extractedText: `${mrpMatch[0]} (incl. of taxes declared on label / bottle stamp)`,
+            confidence: 0.92,
+            notes: `MRP amount ₹${mrpMatch[1]} and tax inclusion verified pursuant to Rule 6(1) Proviso.`
           };
         } else {
           return {
@@ -147,13 +152,30 @@ const LegalMetrologyRules = [
         }
       }
 
-      const currencyMatch = text.match(currencyPattern);
+      const currencyMatch = textWithoutUsp.match(currencyPattern);
       if (currencyMatch) {
+        if (hasStampRef) {
+          return {
+            status: 'found',
+            extractedText: `${currencyMatch[0]} (MRP Stamped on Bottle / Cap per Rule 6 Proviso)`,
+            confidence: 0.92,
+            notes: `Price figure ₹${currencyMatch[1]} verified on stamped bottle surface pursuant to Rule 6(1) Proviso.`
+          };
+        }
         return {
           status: 'manual_verification',
           extractedText: currencyMatch[0].trim(),
           confidence: 0.6,
           notes: `Price figure "${currencyMatch[0]}" identified, but not explicitly labeled as "MRP" or "Maximum Retail Price". Needs manual verification.`
+        };
+      }
+
+      if (hasStampRef) {
+        return {
+          status: 'manual_verification',
+          extractedText: 'Refer to Stamp on Bottle (Rule 6 Proviso)',
+          confidence: 0.85,
+          notes: 'Label directs "REFER TO STAMP ON BOTTLE" permitted under Rule 6(1) Proviso. Please upload or scan the bottle cap / neck stamp photo to verify stamped MRP.'
         };
       }
 
@@ -176,8 +198,8 @@ const LegalMetrologyRules = [
     description: 'Mandatory declaration of Unit Sale Price (e.g. ₹ per g, ₹ per ml, ₹ per unit) where net quantity is more than 1 kg/1 litre or for multi-piece packages, enabling consumer price transparency.',
     correctiveAction: 'Calculate and print Unit Sale Price rounded off to nearest two decimal places: e.g. "₹ 0.35 / g" or "₹ 15.00 / 100ml" adjacent to MRP.',
     evaluate: function (text, category) {
-      const uspPattern = /(?:unit\s*sale\s*price|u\.?s\.?p\.?)[:\s]*(?:rs\.?|₹|\u20b9|inr)?\s*(\d+(?:\.\d{1,2})?)\s*(?:\/|\s*per\s*)\s*(?:g|gm|kg|ml|l|ltr|n|unit|piece|item)\b/i;
-      const ratePattern = /(?:rs\.?|₹|\u20b9|inr)\s*(\d+(?:\.\d{1,2})?)\s*(?:\/|\s*per\s*)\s*(?:100\s*g|100\s*ml|10\s*g|g|kg|ml|l|n|unit)\b/i;
+      const uspPattern = /(?:unit\s*sale\s*price|u\.?s\.?p\.?)[:\s]*(?:rs\.?|₹|\u20b9|inr)?\s*(\d+(?:\.\d{1,4})?)\s*(?:\/|\s*per\s*)\s*(?:g|gm|kg|ml|l|ltr|n|unit|piece|item)\b/i;
+      const ratePattern = /(?:rs\.?|₹|\u20b9|inr)\s*(\d+(?:\.\d{1,4})?)\s*(?:\/|\s*per\s*)\s*(?:100\s*g|100\s*ml|10\s*g|g|kg|ml|l|n|unit)\b/i;
 
       const match = text.match(uspPattern);
       if (match) {
@@ -336,7 +358,7 @@ const LegalMetrologyRules = [
     description: 'The month and year in which the commodity is manufactured or pre-packed or imported must be clearly indicated (e.g., 08/2026 or Aug 2026).',
     correctiveAction: 'Display the manufacturing or pre-packing month and year prominently: "Mfg Date: MM/YYYY" or "Pkd: Month YYYY".',
     evaluate: function (text, category) {
-      const mfgDatePattern = /(?:mfg(?:\.|ured)?|pkd(?:\.|ed)?|packed|import(?:ed)?|mfg\s*date|date\s*of\s*mfg|month\s*(?:&|and)?\s*year\s*(?:of)?\s*(?:mfg|manufacture|packing)?)[:\s]*([0-3]?\d[\/\-\.][0-1]?\d[\/\-\.]20\d{2}|[0-1]?\d[\/\-\.]20\d{2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s\.\,\-\/]+20\d{2})/i;
+      const mfgDatePattern = /(?:mfg(?:\.|ured)?|mfd(?:\.|ed)?|pkd(?:\.|ed)?|packed|import(?:ed)?|mfg\s*date|mfd\s*date|date\s*of\s*mfg|date\s*of\s*mfd|month\s*(?:&|and)?\s*year\s*(?:of)?\s*(?:mfg|mfd|manufacture|packing)?)[:\s]*([0-3]?\d[\/\-\.][0-1]?\d[\/\-\.]20\d{2}|[0-1]?\d[\/\-\.]20\d{2}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s\.\,\-\/]+20\d{2})/i;
       const genericDatePattern = /\b(0[1-9]|1[0-2])[\/\-](20\d{2})\b/;
 
       const match = text.match(mfgDatePattern);
@@ -356,6 +378,16 @@ const LegalMetrologyRules = [
           extractedText: genericMatch[0],
           confidence: 0.7,
           notes: `Detected Month/Year format date "${genericMatch[0]}". Confirm if it explicitly refers to date of manufacture or packing.`
+        };
+      }
+
+      const hasStampRef = /(?:refer\s*to\s*stamp(?:\s*on\s*(?:bottle|cap|neck|crown))?|stamp\s*on\s*(?:bottle|cap|neck|crown)|see\s*(?:cap|neck|crown|bottle|stamp))/i.test(text);
+      if (hasStampRef) {
+        return {
+          status: 'manual_verification',
+          extractedText: 'Refer to Stamp on Bottle (Rule 6 Proviso)',
+          confidence: 0.85,
+          notes: 'Manufacturing/packing date is indicated to be stamped on bottle cap/neck per Rule 6(1) Proviso. Please upload or scan the bottle cap / neck stamp photo to verify.'
         };
       }
 
@@ -478,6 +510,16 @@ const LegalMetrologyRules = [
           extractedText: match[0].trim(),
           confidence: 0.94,
           notes: `Batch/Lot tracking code detected: "${match[0].trim()}".`
+        };
+      }
+
+      const hasStampRef = /(?:refer\s*to\s*stamp(?:\s*on\s*(?:bottle|cap|neck|crown))?|stamp\s*on\s*(?:bottle|cap|neck|crown)|see\s*(?:cap|neck|crown|bottle|stamp))/i.test(text);
+      if (hasStampRef) {
+        return {
+          status: 'manual_verification',
+          extractedText: 'Refer to Stamp on Bottle (Rule 6 Proviso)',
+          confidence: 0.85,
+          notes: 'Batch/Lot number is indicated on bottle cap/neck per Rule 6(1) Proviso. Please upload or scan the bottle cap / neck stamp photo to verify.'
         };
       }
 

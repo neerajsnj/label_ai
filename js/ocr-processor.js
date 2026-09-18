@@ -93,13 +93,24 @@ class OCRProcessor {
     // Try Tesseract.js if available in browser window
     if (typeof Tesseract !== 'undefined') {
       try {
-        onProgress({ status: 'Running Neural Vision OCR...', progress: 25 });
+        onProgress({ status: 'Preprocessing & Enhancing Contrast...', progress: 20 });
 
-        const result = await Tesseract.recognize(imageSource, 'eng', {
+        let processedSource = imageSource;
+        if (typeof HTMLImageElement !== 'undefined' && imageSource instanceof HTMLImageElement && imageSource.naturalWidth > 0) {
+          try {
+            processedSource = this.preprocessImage(imageSource);
+          } catch (e) {
+            processedSource = imageSource;
+          }
+        }
+
+        onProgress({ status: 'Running Neural Vision OCR...', progress: 30 });
+
+        const result = await Tesseract.recognize(processedSource, 'eng', {
           logger: m => {
             if (m.status === 'recognizing text') {
-              const p = Math.round(25 + (m.progress || 0) * 70);
-              onProgress({ status: `Scanning label text (${Math.round((m.progress || 0) * 100)}%)...`, progress: p });
+              const p = Math.round(30 + (m.progress || 0) * 65);
+              onProgress({ status: `Scanning packaging text (${Math.round((m.progress || 0) * 100)}%)...`, progress: p });
             }
           }
         });

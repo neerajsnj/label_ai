@@ -14,7 +14,9 @@ const state = {
   currentSample: null,
   lastScanData: null,
   checklistFilter: 'all',
-  cameraStream: null
+  cameraStream: null,
+  scannedImages: [],
+  activeImageIndex: 0
 };
 
 // Sub-modules instances
@@ -138,7 +140,7 @@ function toggleMobileMenu() {
 }
 
 /**
- * Load a Curated Sample Commodity and Render Graphic
+ * Load a Curated Sample Commodity and Render Graphic (supports multi-surface items like bottles + cap stamps)
  */
 function loadSampleCommodity(sampleId) {
   const sample = SamplePackagedCommodities.find(s => s.id === sampleId);
@@ -155,13 +157,122 @@ function loadSampleCommodity(sampleId) {
   const prodNameInput = document.getElementById('input-product-name');
   if (prodNameInput) prodNameInput.value = sample.name;
 
-  // Generate visual label graphic
+  // Multi-surface bottle with cap stamp
+  if (sample.surfaces && sample.surfaces.length > 1) {
+    const dataUrl1 = generateSampleLabelGraphic(sample);
+
+    // Generate authentic visual graphic for the bottle cap / top stamp
+    const capCanvas = document.createElement('canvas');
+    capCanvas.width = 600;
+    capCanvas.height = 450;
+    const cctx = capCanvas.getContext('2d');
+
+    cctx.fillStyle = '#0f172a';
+    cctx.fillRect(0, 0, 600, 450);
+
+    // Bottle cap circular ridge
+    cctx.strokeStyle = '#0284c7';
+    cctx.lineWidth = 6;
+    cctx.beginPath();
+    cctx.arc(300, 225, 170, 0, Math.PI * 2);
+    cctx.stroke();
+
+    cctx.fillStyle = '#1e293b';
+    cctx.beginPath();
+    cctx.arc(300, 225, 166, 0, Math.PI * 2);
+    cctx.fill();
+
+    // Cap ribbing lines
+    cctx.strokeStyle = '#334155';
+    cctx.lineWidth = 2;
+    for (let a = 0; a < Math.PI * 2; a += Math.PI / 16) {
+      cctx.beginPath();
+      cctx.moveTo(300 + Math.cos(a) * 155, 225 + Math.sin(a) * 155);
+      cctx.lineTo(300 + Math.cos(a) * 168, 225 + Math.sin(a) * 168);
+      cctx.stroke();
+    }
+
+    cctx.fillStyle = '#94a3b8';
+    cctx.font = 'bold 13px "Inter", monospace';
+    cctx.textAlign = 'center';
+    cctx.fillText('LEGAL METROLOGY CROWN STAMP (RULE 6 PROVISO)', 300, 140);
+
+    cctx.fillStyle = '#38bdf8';
+    cctx.font = 'bold 22px "JetBrains Mono", monospace';
+    cctx.fillText('B.NO: MRB-842', 300, 185);
+
+    cctx.fillStyle = '#f8fafc';
+    cctx.font = 'bold 18px "JetBrains Mono", monospace';
+    cctx.fillText('MFD: 08/2026', 300, 225);
+    cctx.fillText('USE BY: 02/2027', 300, 260);
+
+    cctx.fillStyle = '#4ade80';
+    cctx.font = 'bold 20px "JetBrains Mono", monospace';
+    cctx.fillText('MRP: Rs. 20.00 (INCL. TAX)', 300, 305);
+
+    const dataUrl2 = capCanvas.toDataURL('image/png');
+
+    const img1 = new Image();
+    const img2 = new Image();
+    img1.onload = () => {
+      img2.onload = () => {
+        state.scannedImages = [
+          {
+            id: 'sample_s1',
+            name: sample.surfaces[0].name,
+            dataUrl: dataUrl1,
+            imgElement: img1,
+            ocrText: sample.surfaces[0].text,
+            words: [],
+            regions: sample.regions || []
+          },
+          {
+            id: 'sample_s2',
+            name: sample.surfaces[1].name,
+            dataUrl: dataUrl2,
+            imgElement: img2,
+            ocrText: sample.surfaces[1].text,
+            words: [],
+            regions: [{ box: [15, 20, 70, 60], label: 'Stamped MRP, Date & Batch (Rule 6 Proviso)', color: '#10b981' }]
+          }
+        ];
+        state.activeImageIndex = 0;
+        state.currentImageSource = img1;
+        state.currentImageDataUrl = dataUrl1;
+
+        displayImageOnCanvas(img1, sample.regions);
+        renderMultiSurfaceStrip();
+        combineAndSetOcrText();
+        evaluateCompliance(false);
+      };
+      img2.src = dataUrl2;
+    };
+    img1.src = dataUrl1;
+
+    showToast(`Loaded 2-surface sample: ${sample.name} (Rule 6 Proviso)`);
+    return;
+  }
+
+  // Single-surface sample
   const dataUrl = generateSampleLabelGraphic(sample);
   state.currentImageDataUrl = dataUrl;
 
   const img = new Image();
   img.onload = () => {
     state.currentImageSource = img;
+    state.scannedImages = [
+      {
+        id: 'sample_' + sample.id,
+        name: 'Primary Label',
+        dataUrl: dataUrl,
+        imgElement: img,
+        ocrText: sample.rawText,
+        words: [],
+        regions: sample.regions || []
+      }
+    ];
+    state.activeImageIndex = 0;
+    renderMultiSurfaceStrip();
     displayImageOnCanvas(img, sample.regions);
     runOcrPipeline(sample);
   };
@@ -188,53 +299,185 @@ function displayImageOnCanvas(img, regions = []) {
 }
 
 /**
- * Run OCR Extraction Pipeline with visual scanner beam
+ * Render thumbnail gallery for all scanned package surfaces
  */
-async function runOcrPipeline(sampleFallback = null) {
+function renderMultiSurfaceStrip() {
+  const strip = document.getElementById('multi-surface-strip');
+  const container = document.getElementById('multi-surface-thumbnails');
+  const badge = document.getElementById('surface-count-badge');
+  if (!strip || !container) return;
+
+  if (!state.scannedImages || state.scannedImages.length === 0) {
+    strip.classList.add('hidden');
+    return;
+  }
+
+  strip.classList.remove('hidden');
+  if (badge) {
+    badge.textContent = `${state.scannedImages.length} Surface${state.scannedImages.length > 1 ? 's' : ''}`;
+  }
+
+  container.innerHTML = state.scannedImages.map((imgItem, idx) => {
+    const isActive = idx === state.activeImageIndex;
+    return `
+      <div class="surface-thumb-item ${isActive ? 'active' : ''}" onclick="selectScannedImage(${idx})" title="${imgItem.name}">
+        <img src="${imgItem.dataUrl}" alt="${imgItem.name}" class="surface-thumb-img">
+        <span class="surface-thumb-label">${imgItem.name}</span>
+        ${state.scannedImages.length > 1 ? `
+          <button type="button" class="surface-thumb-del" onclick="removeScannedImage(${idx}, event)" title="Remove this angle">×</button>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * Switch active preview canvas to a specific scanned surface
+ */
+function selectScannedImage(index) {
+  if (!state.scannedImages || index < 0 || index >= state.scannedImages.length) return;
+  state.activeImageIndex = index;
+  const active = state.scannedImages[index];
+  state.currentImageSource = active.imgElement;
+  state.currentImageDataUrl = active.dataUrl;
+
+  displayImageOnCanvas(active.imgElement, active.regions || []);
+  renderMultiSurfaceStrip();
+  showToast(`Viewing: ${active.name}`);
+}
+
+/**
+ * Remove an angle from current scan
+ */
+function removeScannedImage(index, event) {
+  if (event) event.stopPropagation();
+  if (state.scannedImages.length <= 1) {
+    showToast('Cannot remove the only surface. Add another angle first.');
+    return;
+  }
+
+  state.scannedImages.splice(index, 1);
+  if (state.activeImageIndex >= state.scannedImages.length) {
+    state.activeImageIndex = state.scannedImages.length - 1;
+  }
+
+  const active = state.scannedImages[state.activeImageIndex];
+  state.currentImageSource = active.imgElement;
+  state.currentImageDataUrl = active.dataUrl;
+
+  displayImageOnCanvas(active.imgElement, active.regions || []);
+  renderMultiSurfaceStrip();
+  combineAndSetOcrText();
+  evaluateCompliance(false);
+  showToast('Removed angle from inspection.');
+}
+
+/**
+ * Combine extracted texts from all scanned surfaces and update textarea
+ */
+function combineAndSetOcrText() {
+  const textarea = document.getElementById('ocr-raw-text');
+  if (!textarea) return;
+
+  if (state.scannedImages.length === 1) {
+    textarea.value = (state.scannedImages[0].ocrText || '').trim();
+  } else {
+    textarea.value = state.scannedImages.map((img, i) => {
+      const header = `--- SURFACE ${i + 1}: ${img.name.toUpperCase()} ---`;
+      return `${header}\n${(img.ocrText || '').trim()}`;
+    }).join('\n\n');
+  }
+
+  checkStampProvisoGuidance();
+}
+
+/**
+ * Check if the packaging label states "REFER TO STAMP ON BOTTLE"
+ * and prompt user to upload the cap/top stamp if only 1 angle is scanned
+ */
+function checkStampProvisoGuidance() {
+  const banner = document.getElementById('stamp-guidance-banner');
+  if (!banner) return;
+
+  const rawText = (document.getElementById('ocr-raw-text')?.value || '');
+  const hasStampRef = /(?:refer\s*to\s*stamp(?:\s*on\s*(?:bottle|cap|neck|crown))?|stamp\s*on\s*(?:bottle|cap|neck|crown)|see\s*(?:cap|neck|crown|bottle|stamp))/i.test(rawText);
+
+  // Show banner if label refers to stamp on bottle, but only 1 surface was provided
+  const hasMultipleSurfaces = state.scannedImages && state.scannedImages.length > 1;
+
+  if (hasStampRef && !hasMultipleSurfaces) {
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+/**
+ * Run OCR extraction across all scanned packaging surfaces
+ */
+async function runMultiImageOcrPipeline() {
   const beam = document.getElementById('scanner-beam');
   const progressCont = document.getElementById('ocr-progress-container');
   const progressBar = document.getElementById('ocr-progress-bar');
   const progressLabel = document.getElementById('ocr-progress-label');
   const progressPercent = document.getElementById('ocr-progress-percent');
   const ocrStatusPill = document.getElementById('ocr-status-pill');
-  const textarea = document.getElementById('ocr-raw-text');
 
   if (beam) beam.classList.remove('hidden');
   if (progressCont) progressCont.classList.remove('hidden');
+
+  const total = state.scannedImages.length;
   if (ocrStatusPill) {
     ocrStatusPill.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800';
-    ocrStatusPill.textContent = 'Scanning & Extracting...';
+    ocrStatusPill.textContent = `Scanning ${total} Surface${total > 1 ? 's' : ''}...`;
   }
 
-  try {
-    const ocrResult = await ocrProcessor.extractText(
-      state.currentImageSource || state.currentImageDataUrl,
-      progress => {
-        if (progressBar) progressBar.style.width = `${progress.progress}%`;
-        if (progressPercent) progressPercent.textContent = `${progress.progress}%`;
-        if (progressLabel) progressLabel.textContent = progress.status;
-      },
-      sampleFallback
-    );
+  for (let i = 0; i < total; i++) {
+    const item = state.scannedImages[i];
+    // Skip if already extracted
+    if (item.ocrText && item.ocrText.trim().length > 15) continue;
 
-    if (textarea) textarea.value = ocrResult.text;
+    if (progressLabel) progressLabel.textContent = `Scanning Surface ${i + 1} of ${total}: ${item.name}...`;
+    const pctBase = Math.round((i / total) * 100);
 
-    if (ocrStatusPill) {
-      ocrStatusPill.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
-      ocrStatusPill.textContent = 'Text Extracted (Ready)';
+    try {
+      const ocrResult = await ocrProcessor.extractText(
+        item.imgElement || item.dataUrl,
+        p => {
+          const stepPct = Math.min(100, Math.round(pctBase + ((p.progress || 0) / total)));
+          if (progressBar) progressBar.style.width = `${stepPct}%`;
+          if (progressPercent) progressPercent.textContent = `${stepPct}%`;
+        },
+        state.currentSample
+      );
+      item.ocrText = ocrResult.text;
+      item.words = ocrResult.words || [];
+    } catch (e) {
+      console.warn('OCR extraction error on surface', i, e);
     }
+  }
 
-    // Automatically trigger compliance rule evaluation
-    evaluateCompliance(false);
+  combineAndSetOcrText();
 
-  } catch (err) {
-    console.error('OCR pipeline error:', err);
-    showToast('OCR extraction failed. Please check image quality.');
-  } finally {
-    if (beam) beam.classList.add('hidden');
-    setTimeout(() => {
-      if (progressCont) progressCont.classList.add('hidden');
-    }, 600);
+  if (ocrStatusPill) {
+    ocrStatusPill.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+    ocrStatusPill.textContent = `Scanned ${total} Angle${total > 1 ? 's' : ''} (Ready)`;
+  }
+
+  if (beam) beam.classList.add('hidden');
+  setTimeout(() => {
+    if (progressCont) progressCont.classList.add('hidden');
+  }, 600);
+
+  evaluateCompliance(false);
+}
+
+/**
+ * Run OCR Extraction Pipeline with visual scanner beam (Single sample fallback wrapper)
+ */
+async function runOcrPipeline(sampleFallback = null) {
+  if (state.scannedImages && state.scannedImages.length > 0) {
+    return runMultiImageOcrPipeline();
   }
 }
 
@@ -899,6 +1142,7 @@ function initEventListeners() {
   // Drag & drop
   const dropZone = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
+  const addAngleInput = document.getElementById('add-angle-input');
 
   if (dropZone) {
     ['dragenter', 'dragover'].forEach(eventName => {
@@ -917,24 +1161,40 @@ function initEventListeners() {
 
     dropZone.addEventListener('drop', e => {
       const files = e.dataTransfer.files;
-      if (files.length > 0) handleUploadedFile(files[0]);
+      if (files.length > 0) handleUploadedFiles(files, state.scannedImages && state.scannedImages.length > 0);
     });
   }
 
   if (fileInput) {
     fileInput.addEventListener('change', e => {
-      if (e.target.files.length > 0) handleUploadedFile(e.target.files[0]);
+      if (e.target.files.length > 0) handleUploadedFiles(e.target.files, false);
+    });
+  }
+
+  if (addAngleInput) {
+    addAngleInput.addEventListener('change', e => {
+      if (e.target.files.length > 0) handleUploadedFiles(e.target.files, true);
     });
   }
 
   // Camera buttons
   const btnCamera = document.getElementById('btn-open-camera');
   const btnCapture = document.getElementById('btn-capture-photo');
+  const btnCaptureAddAngle = document.getElementById('btn-capture-add-angle');
   const btnCloseCam = document.getElementById('btn-close-camera');
 
   if (btnCamera) btnCamera.addEventListener('click', startCameraStream);
-  if (btnCapture) btnCapture.addEventListener('click', captureCameraSnapshot);
+  if (btnCapture) btnCapture.addEventListener('click', () => captureCameraSnapshot(false));
+  if (btnCaptureAddAngle) btnCaptureAddAngle.addEventListener('click', () => captureCameraSnapshot(true));
   if (btnCloseCam) btnCloseCam.addEventListener('click', stopCameraStream);
+
+  // Live monitoring on textarea to check stamp guidance
+  const ocrTextarea = document.getElementById('ocr-raw-text');
+  if (ocrTextarea) {
+    ocrTextarea.addEventListener('input', () => {
+      checkStampProvisoGuidance();
+    });
+  }
 
   // Run audit CTA
   const btnRun = document.getElementById('btn-run-audit');
@@ -963,27 +1223,71 @@ function initEventListeners() {
   });
 }
 
-function handleUploadedFile(file) {
-  if (!file.type.startsWith('image/')) {
+function handleUploadedFiles(fileList, isAppend = false) {
+  const validFiles = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  if (validFiles.length === 0) {
     alert('Please upload a valid image file (PNG, JPG, WEBP).');
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    const dataUrl = e.target.result;
-    state.currentImageDataUrl = dataUrl;
-    state.currentSample = null;
+  if (!isAppend) {
+    state.scannedImages = [];
+    state.activeImageIndex = 0;
+  }
+  state.currentSample = null;
 
-    const img = new Image();
-    img.onload = () => {
-      state.currentImageSource = img;
-      displayImageOnCanvas(img, []);
-      runOcrPipeline();
+  let loadedCount = 0;
+  const newEntries = [];
+
+  validFiles.forEach((file) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      const img = new Image();
+      img.onload = () => {
+        const existingCount = state.scannedImages.length + newEntries.length;
+        let surfaceName = existingCount === 0 ? 'Body / Main Label' :
+          (existingCount === 1 ? 'Bottle Top / Cap Stamp' : `Surface ${existingCount + 1}`);
+
+        if (/cap|top|stamp|neck|crown/i.test(file.name)) {
+          surfaceName = 'Bottle Top / Cap Stamp';
+        } else if (/back|rear|info/i.test(file.name)) {
+          surfaceName = 'Back / Information Panel';
+        }
+
+        newEntries.push({
+          id: 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          name: surfaceName,
+          dataUrl: dataUrl,
+          imgElement: img,
+          ocrText: '',
+          words: [],
+          regions: []
+        });
+
+        loadedCount++;
+        if (loadedCount === validFiles.length) {
+          state.scannedImages = state.scannedImages.concat(newEntries);
+          state.activeImageIndex = state.scannedImages.length - 1;
+
+          const active = state.scannedImages[state.activeImageIndex];
+          state.currentImageSource = active.imgElement;
+          state.currentImageDataUrl = active.dataUrl;
+
+          displayImageOnCanvas(active.imgElement, active.regions);
+          renderMultiSurfaceStrip();
+          runMultiImageOcrPipeline();
+          showToast(`Added ${newEntries.length} image surface${newEntries.length > 1 ? 's' : ''}`);
+        }
+      };
+      img.src = dataUrl;
     };
-    img.src = dataUrl;
-  };
-  reader.readAsDataURL(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+function handleUploadedFile(file) {
+  handleUploadedFiles([file], false);
 }
 
 /**
@@ -1013,7 +1317,7 @@ async function startCameraStream() {
   }
 }
 
-function captureCameraSnapshot() {
+function captureCameraSnapshot(isAppend = false) {
   const video = document.getElementById('camera-video');
   if (!video) return;
 
@@ -1024,16 +1328,36 @@ function captureCameraSnapshot() {
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
   const dataUrl = canvas.toDataURL('image/png');
-  state.currentImageDataUrl = dataUrl;
-  state.currentSample = null;
-
   stopCameraStream();
 
   const img = new Image();
   img.onload = () => {
+    if (!isAppend) {
+      state.scannedImages = [];
+    }
+    const count = state.scannedImages.length;
+    const surfaceName = count === 0 ? 'Body / Main Label' :
+      (count === 1 ? 'Bottle Top / Cap Stamp' : `Angle ${count + 1}`);
+
+    const entry = {
+      id: 'cam_' + Date.now(),
+      name: surfaceName,
+      dataUrl: dataUrl,
+      imgElement: img,
+      ocrText: '',
+      words: [],
+      regions: []
+    };
+
+    state.scannedImages.push(entry);
+    state.activeImageIndex = state.scannedImages.length - 1;
     state.currentImageSource = img;
+    state.currentImageDataUrl = dataUrl;
+    state.currentSample = null;
+
     displayImageOnCanvas(img, []);
-    runOcrPipeline();
+    renderMultiSurfaceStrip();
+    runMultiImageOcrPipeline();
   };
   img.src = dataUrl;
 }

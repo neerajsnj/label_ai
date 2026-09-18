@@ -194,6 +194,78 @@ Address: Same as Manufactured by`,
       accent: '#2563eb',
       badgeColor: '#16a34a'
     }
+  },
+
+  {
+    id: 'sample_bottle_water_stamp',
+    name: 'Meriba Packaged Drinking Water',
+    category: 'food',
+    expectedScore: 96,
+    expectedStatus: 'green',
+    subtitle: '1L Bottle — 2 Surfaces (Rule 6 Proviso Bottle Stamp)',
+    badge: 'Compliant (Rule 6 Proviso)',
+    description: 'Demonstrates Legal Metrology Rule 6(1) Proviso for bottled drinks: Main label declares "REFER TO STAMP ON BOTTLE" with bottle cap scan providing stamped MRP, MFD Date, and Batch Number.',
+    multiSurface: true,
+    surfaces: [
+      {
+        name: 'Body / Main Label',
+        text: `PACKAGED DRINKING WATER
+INGREDIENTS: TREATED WATER, MINERALS (CALCIUM AND MAGNESIUM)
+MERIBA
+BEST BEFORE SIX MONTHS FROM MANUFACTURE
+BATCH NO       |
+MFD DATE       | REFER TO STAMP
+USE BY DATE    | ON BOTTLE
+M.R.P. INCL. OF ALL TAXES |
+USP: ₹0.02/ml
+NET QTY: 1 L
+MANUFACTURED BY: Meriba Aqua Tech Pvt Ltd, Plot 14, Industrial Estate, Bangalore, Karnataka, India - 560058
+FOR COMPLAINTS CONTACT: Customer Care Cell, Tel: 1800-425-9988, Email: care@meribawater.in
+FSSAI Lic. No. 10020043000892`
+      },
+      {
+        name: 'Bottle Top / Cap Stamp',
+        text: `--- BOTTLE CAP / TOP STAMP ---
+B.NO: MRB-842
+MFD: 08/2026
+USE BY: 02/2027
+MRP: Rs. 20.00 (INCL. OF ALL TAXES)`
+      }
+    ],
+    rawText: `--- SURFACE 1: BODY / MAIN LABEL ---
+PACKAGED DRINKING WATER
+INGREDIENTS: TREATED WATER, MINERALS (CALCIUM AND MAGNESIUM)
+MERIBA
+BEST BEFORE SIX MONTHS FROM MANUFACTURE
+BATCH NO       |
+MFD DATE       | REFER TO STAMP
+USE BY DATE    | ON BOTTLE
+M.R.P. INCL. OF ALL TAXES |
+USP: ₹0.02/ml
+NET QTY: 1 L
+MANUFACTURED BY: Meriba Aqua Tech Pvt Ltd, Plot 14, Industrial Estate, Bangalore, Karnataka, India - 560058
+FOR COMPLAINTS CONTACT: Customer Care Cell, Tel: 1800-425-9988, Email: care@meribawater.in
+FSSAI Lic. No. 10020043000892
+
+--- SURFACE 2: BOTTLE TOP / CAP STAMP ---
+B.NO: MRB-842
+MFD: 08/2026
+USE BY: 02/2027
+MRP: Rs. 20.00 (INCL. OF ALL TAXES)`,
+    regions: [
+      { box: [15, 8, 70, 14], label: 'Generic Name (Packaged Water)', color: '#10b981' },
+      { box: [15, 26, 35, 10], label: 'Net Quantity (1 L)', color: '#10b981' },
+      { box: [15, 38, 45, 12], label: 'Rule 6 Proviso (Refer to Stamp)', color: '#10b981' },
+      { box: [15, 52, 40, 9], label: 'Unit Sale Price (USP)', color: '#10b981' },
+      { box: [15, 63, 75, 18], label: 'Manufacturer & FSSAI', color: '#10b981' },
+      { box: [15, 82, 75, 15], label: 'Consumer Care Cell', color: '#10b981' }
+    ],
+    theme: {
+      bg: '#f0f9ff',
+      headerBg: '#0284c7',
+      accent: '#0ea5e9',
+      badgeColor: '#16a34a'
+    }
   }
 ];
 

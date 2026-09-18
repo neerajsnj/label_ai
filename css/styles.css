@@ -624,3 +624,80 @@ body {
     display: none !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   15. MULTI-SURFACE / ANGLE GALLERY
+   -------------------------------------------------------------------------- */
+.surface-thumb-item {
+  position: relative;
+  flex: 0 0 auto;
+  width: 96px;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--border-medium);
+  background: #ffffff;
+  padding: 3px;
+  transition: all 0.2s ease;
+}
+
+.surface-thumb-item:hover {
+  border-color: var(--teal-500);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.surface-thumb-item.active {
+  border-color: var(--teal-600);
+  background: var(--teal-50);
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.25);
+}
+
+.surface-thumb-img {
+  width: 100%;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
+  background-color: var(--slate-100);
+}
+
+.surface-thumb-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--navy-800);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 3px;
+  display: block;
+}
+
+.surface-thumb-del {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rose-600);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #ffffff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 10;
+}
+
+.surface-thumb-item:hover .surface-thumb-del {
+  opacity: 1;
+}
+
+.surface-thumb-del:hover {
+  background: var(--rose-700);
+  transform: scale(1.1);
+}
