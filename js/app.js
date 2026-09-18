@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   renderAdminRulesList();
   renderHistoryTable();
-  initCanvaIntegration();
   if (window.lucide) window.lucide.createIcons();
 
   // Load default compliant sample to start with immediate rich visualization
@@ -835,18 +834,12 @@ function updateDashboardUI(data, isPreliminary = false) {
       issuesContainer.innerHTML = issues.slice(0, 3).map(iss => {
         const isCrit = iss.severity === 'critical' || iss.status === 'missing';
         return `
-          <div class="flex items-start justify-between gap-2 ${isCrit ? 'text-rose-700 bg-rose-50/70 border-rose-200' : 'text-amber-700 bg-amber-50/70 border-amber-200'} p-2.5 rounded-lg border">
-            <div class="flex items-start space-x-2 min-w-0">
-              <i data-lucide="${isCrit ? 'alert-octagon' : 'alert-triangle'}" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
-              <div class="min-w-0">
-                <span class="font-bold text-[11px]">${escapeHtml(iss.name)} (${escapeHtml(iss.legalRef)})</span>
-                <p class="text-[10px] text-slate-600 line-clamp-1">${escapeHtml(iss.description || iss.notes)}</p>
-              </div>
+          <div class="flex items-start space-x-2 ${isCrit ? 'text-rose-700 bg-rose-50/70 border-rose-200' : 'text-amber-700 bg-amber-50/70 border-amber-200'} p-2.5 rounded-lg border">
+            <i data-lucide="${isCrit ? 'alert-octagon' : 'alert-triangle'}" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+            <div class="min-w-0">
+              <span class="font-bold text-[11px]">${escapeHtml(iss.name)} (${escapeHtml(iss.legalRef)})</span>
+              <p class="text-[10px] text-slate-600 line-clamp-1">${escapeHtml(iss.description || iss.notes)}</p>
             </div>
-            <button onclick="fixIssueInCanva('${escapeHtml(iss.name)}', '${escapeHtml(iss.legalRef)}')" class="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-white hover:bg-teal-50 text-teal-800 border border-teal-200 shadow-xs flex items-center gap-1 transition" title="Copy compliant declaration snippet and launch Canva editor">
-              <span>Fix in Canva</span>
-              <i data-lucide="external-link" class="w-3 h-3 text-teal-600"></i>
-            </button>
           </div>
         `;
       }).join('');
