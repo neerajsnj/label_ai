@@ -1619,187 +1619,28 @@ function copyOcrRawText() {
 
 /**
  * --------------------------------------------------------------------------
- * Canva Pro Packaging Integration Handlers
+ * Global Clipboard Paste Listener
  * --------------------------------------------------------------------------
+ * Pressing Ctrl+V anywhere with a copied packaging photo/screenshot stages it for audit
  */
-
-function openCanvaModal() {
-  const modal = document.getElementById('modal-canva');
-  const urlInput = document.getElementById('input-canva-design-url');
-  if (modal) modal.classList.remove('hidden');
-
-  const savedUrl = localStorage.getItem('labelcheck_canva_url') || '';
-  if (urlInput) urlInput.value = savedUrl;
-  if (window.lucide) window.lucide.createIcons();
-}
-
-function closeCanvaModal() {
-  const modal = document.getElementById('modal-canva');
-  if (modal) modal.classList.add('hidden');
-}
-
-function saveCanvaDesignLink() {
-  const urlInput = document.getElementById('input-canva-design-url');
-  const url = urlInput ? urlInput.value.trim() : '';
-
-  if (!url) {
-    localStorage.removeItem('labelcheck_canva_url');
-    updateCanvaStatusUI(false);
-    showToast('Removed saved Canva link.');
-    return;
+window.addEventListener('paste', e => {
+  const activeTagName = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+  if (activeTagName === 'textarea' || activeTagName === 'input') {
+    return; // Do not intercept normal typing paste in text inputs
   }
 
-  if (!/^https?:\/\/(www\.)?canva\.com\//i.test(url)) {
-    alert('Please enter a valid Canva design or share URL (e.g. https://www.canva.com/design/.../view).');
-    return;
-  }
+  const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+  if (!items) return;
 
-  localStorage.setItem('labelcheck_canva_url', url);
-  updateCanvaStatusUI(true);
-  showToast('Canva Pro packaging design linked successfully!');
-  closeCanvaModal();
-}
-
-function updateCanvaStatusUI(isLinked) {
-  const statusLabel = document.getElementById('canva-link-status-label');
-  const topBtn = document.getElementById('btn-top-canva');
-  const openActiveBtn = document.getElementById('btn-open-active-canva');
-
-  if (isLinked) {
-    if (statusLabel) statusLabel.textContent = 'Canva: Linked ✓';
-    if (topBtn) {
-      topBtn.classList.remove('bg-teal-50', 'text-teal-800', 'border-teal-200');
-      topBtn.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-300');
-      topBtn.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-[#00C4CC]"></span><span>Canva Pro Linked ✓</span>';
-    }
-    if (openActiveBtn) {
-      openActiveBtn.innerHTML = '<i data-lucide="external-link" class="w-3.5 h-3.5"></i><span>Open Linked Canva Design ↗</span>';
-    }
-  } else {
-    if (statusLabel) statusLabel.textContent = 'Canva: Not Linked';
-    if (topBtn) {
-      topBtn.classList.remove('bg-emerald-50', 'text-emerald-800', 'border-emerald-300');
-      topBtn.classList.add('bg-teal-50', 'text-teal-800', 'border-teal-200');
-      topBtn.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-[#00C4CC]"></span><span>Canva Pro Link</span>';
-    }
-    if (openActiveBtn) {
-      openActiveBtn.innerHTML = '<i data-lucide="external-link" class="w-3.5 h-3.5"></i><span>Open Canva Packaging ↗</span>';
-    }
-  }
-
-  if (window.lucide) window.lucide.createIcons();
-}
-
-function launchCanvaTemplate(query) {
-  window.open('https://www.canva.com/search?q=' + encodeURIComponent(query), '_blank');
-  showToast(`Opening Canva templates for "${query}"...`);
-}
-
-function openActiveCanvaDesign() {
-  const savedUrl = localStorage.getItem('labelcheck_canva_url');
-  if (savedUrl && savedUrl.startsWith('http')) {
-    window.open(savedUrl, '_blank');
-  } else {
-    window.open('https://www.canva.com/search?q=packaging+label+design', '_blank');
-  }
-}
-
-function importCanvaImageUrl() {
-  const urlInput = document.getElementById('input-canva-image-url');
-  const url = urlInput ? urlInput.value.trim() : '';
-
-  if (!url) {
-    alert('Please enter or paste a Canva image or export URL.');
-    return;
-  }
-
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    state.scannedImages = [{
-      id: 'canva_' + Date.now(),
-      name: 'Canva Pro Packaging Proof',
-      dataUrl: url,
-      imgElement: img,
-      ocrText: '',
-      words: [],
-      regions: []
-    }];
-    state.activeImageIndex = 0;
-    state.currentImageSource = img;
-    state.currentImageDataUrl = url;
-    state.currentSample = null;
-
-    displayImageOnCanvas(img, []);
-    renderMultiSurfaceStrip();
-    showScanPermissionCard();
-    closeCanvaModal();
-    showToast('Canva packaging proof imported! Grant permission to scan.');
-  };
-  img.onerror = () => {
-    alert('Could not load image directly from this URL due to cross-origin restrictions. Tip: In Canva Pro, click Share -> Download (PNG), then drag the file here or press Ctrl+V to paste directly!');
-  };
-  img.src = url;
-}
-
-function getSuggestedCompliantSnippet(issueName) {
-  const lower = (issueName || '').toLowerCase();
-  if (lower.includes('maximum retail price') || lower.includes('mrp')) {
-    return 'MRP: ₹ 0.00 (INCL. OF ALL TAXES)';
-  } else if (lower.includes('unit sale price') || lower.includes('usp')) {
-    return 'USP: ₹ 0.00 / g';
-  } else if (lower.includes('net quantity') || lower.includes('net qty')) {
-    return 'NET QTY: 1 N';
-  } else if (lower.includes('consumer care') || lower.includes('helpline') || lower.includes('complaints')) {
-    return 'FOR COMPLAINTS: Consumer Care Officer, Tel: 1800-000-0000, Email: care@brand.in, Address: Same as Mfg';
-  } else if (lower.includes('date') || lower.includes('mfd') || lower.includes('manufacture')) {
-    return 'MFD: 09/2026 | BEST BEFORE 12 MONTHS FROM MANUFACTURE';
-  } else if (lower.includes('country of origin')) {
-    return 'COUNTRY OF ORIGIN: India';
-  } else if (lower.includes('batch')) {
-    return 'BATCH NO: B-2026-01';
-  } else if (lower.includes('manufacturer') || lower.includes('packer')) {
-    return 'MANUFACTURED & MARKETED BY: Brand Packaging Pvt Ltd, Plot 10, Industrial Area, Bangalore - 560058';
-  }
-  return `${issueName}: [Compliant Declaration per Legal Metrology Rules, 2011]`;
-}
-
-function fixIssueInCanva(issueName, legalRef) {
-  const snippet = getSuggestedCompliantSnippet(issueName);
-  navigator.clipboard.writeText(snippet).then(() => {
-    showToast(`Copied snippet: "${snippet.slice(0, 35)}..." to clipboard! Opening Canva Pro...`);
-  }).catch(() => {
-    showToast(`Opening Canva Pro to fix ${issueName}...`);
-  });
-
-  setTimeout(() => {
-    openActiveCanvaDesign();
-  }, 400);
-}
-
-function initCanvaIntegration() {
-  const savedUrl = localStorage.getItem('labelcheck_canva_url');
-  updateCanvaStatusUI(!!(savedUrl && savedUrl.startsWith('http')));
-
-  // Global clipboard paste listener: Pressing Ctrl+V anywhere with a copied Canva image immediately stages it!
-  window.addEventListener('paste', e => {
-    const activeTagName = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
-    if (activeTagName === 'textarea' || activeTagName === 'input') {
-      return; // Do not intercept normal typing paste
-    }
-
-    const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
-    if (!items) return;
-
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
-        if (file) {
-          handleUploadedFiles([file], state.scannedImages && state.scannedImages.length > 0 && state.auditPhase === 'awaiting_decision');
-          showToast('Pasted image proof from clipboard! Grant permission to scan.');
-        }
-        break;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      const file = items[i].getAsFile();
+      if (file) {
+        handleUploadedFiles([file], state.scannedImages && state.scannedImages.length > 0 && state.auditPhase === 'awaiting_decision');
+        showToast('Pasted image proof from clipboard! Click "Grant Permission & Scan" to analyze.');
       }
+      break;
     }
-  });
-}
+  }
+});
+
