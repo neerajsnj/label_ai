@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
   renderAdminRulesList();
   renderHistoryTable();
+  initCanvaIntegration();
   if (window.lucide) window.lucide.createIcons();
 
   // Load default compliant sample to start with immediate rich visualization
@@ -834,12 +835,18 @@ function updateDashboardUI(data, isPreliminary = false) {
       issuesContainer.innerHTML = issues.slice(0, 3).map(iss => {
         const isCrit = iss.severity === 'critical' || iss.status === 'missing';
         return `
-          <div class="flex items-start space-x-2 ${isCrit ? 'text-rose-700 bg-rose-50/70 border-rose-200' : 'text-amber-700 bg-amber-50/70 border-amber-200'} p-2 rounded-lg border">
-            <i data-lucide="${isCrit ? 'alert-octagon' : 'alert-triangle'}" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
-            <div class="min-w-0">
-              <span class="font-bold text-[11px]">${iss.name} (${iss.legalRef})</span>
-              <p class="text-[10px] text-slate-600 line-clamp-1">${iss.description || iss.notes}</p>
+          <div class="flex items-start justify-between gap-2 ${isCrit ? 'text-rose-700 bg-rose-50/70 border-rose-200' : 'text-amber-700 bg-amber-50/70 border-amber-200'} p-2.5 rounded-lg border">
+            <div class="flex items-start space-x-2 min-w-0">
+              <i data-lucide="${isCrit ? 'alert-octagon' : 'alert-triangle'}" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+              <div class="min-w-0">
+                <span class="font-bold text-[11px]">${escapeHtml(iss.name)} (${escapeHtml(iss.legalRef)})</span>
+                <p class="text-[10px] text-slate-600 line-clamp-1">${escapeHtml(iss.description || iss.notes)}</p>
+              </div>
             </div>
+            <button onclick="fixIssueInCanva('${escapeHtml(iss.name)}', '${escapeHtml(iss.legalRef)}')" class="flex-shrink-0 text-[10px] font-bold px-2 py-1 rounded bg-white hover:bg-teal-50 text-teal-800 border border-teal-200 shadow-xs flex items-center gap-1 transition" title="Copy compliant declaration snippet and launch Canva editor">
+              <span>Fix in Canva</span>
+              <i data-lucide="external-link" class="w-3 h-3 text-teal-600"></i>
+            </button>
           </div>
         `;
       }).join('');
@@ -1599,4 +1606,207 @@ function escapeHtml(text) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * Copy Extracted OCR Raw Text to Clipboard
+ */
+function copyOcrRawText() {
+  const text = document.getElementById('ocr-raw-text')?.value || '';
+  if (!text.trim()) {
+    showToast('No extracted packaging text to copy.');
+    return;
+  }
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Extracted packaging text copied to clipboard!');
+  }).catch(() => {
+    showToast('Copied text to clipboard!');
+  });
+}
+
+/**
+ * --------------------------------------------------------------------------
+ * Canva Pro Packaging Integration Handlers
+ * --------------------------------------------------------------------------
+ */
+
+function openCanvaModal() {
+  const modal = document.getElementById('modal-canva');
+  const urlInput = document.getElementById('input-canva-design-url');
+  if (modal) modal.classList.remove('hidden');
+
+  const savedUrl = localStorage.getItem('labelcheck_canva_url') || '';
+  if (urlInput) urlInput.value = savedUrl;
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function closeCanvaModal() {
+  const modal = document.getElementById('modal-canva');
+  if (modal) modal.classList.add('hidden');
+}
+
+function saveCanvaDesignLink() {
+  const urlInput = document.getElementById('input-canva-design-url');
+  const url = urlInput ? urlInput.value.trim() : '';
+
+  if (!url) {
+    localStorage.removeItem('labelcheck_canva_url');
+    updateCanvaStatusUI(false);
+    showToast('Removed saved Canva link.');
+    return;
+  }
+
+  if (!/^https?:\/\/(www\.)?canva\.com\//i.test(url)) {
+    alert('Please enter a valid Canva design or share URL (e.g. https://www.canva.com/design/.../view).');
+    return;
+  }
+
+  localStorage.setItem('labelcheck_canva_url', url);
+  updateCanvaStatusUI(true);
+  showToast('Canva Pro packaging design linked successfully!');
+  closeCanvaModal();
+}
+
+function updateCanvaStatusUI(isLinked) {
+  const statusLabel = document.getElementById('canva-link-status-label');
+  const topBtn = document.getElementById('btn-top-canva');
+  const openActiveBtn = document.getElementById('btn-open-active-canva');
+
+  if (isLinked) {
+    if (statusLabel) statusLabel.textContent = 'Canva: Linked ✓';
+    if (topBtn) {
+      topBtn.classList.remove('bg-teal-50', 'text-teal-800', 'border-teal-200');
+      topBtn.classList.add('bg-emerald-50', 'text-emerald-800', 'border-emerald-300');
+      topBtn.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-[#00C4CC]"></span><span>Canva Pro Linked ✓</span>';
+    }
+    if (openActiveBtn) {
+      openActiveBtn.innerHTML = '<i data-lucide="external-link" class="w-3.5 h-3.5"></i><span>Open Linked Canva Design ↗</span>';
+    }
+  } else {
+    if (statusLabel) statusLabel.textContent = 'Canva: Not Linked';
+    if (topBtn) {
+      topBtn.classList.remove('bg-emerald-50', 'text-emerald-800', 'border-emerald-300');
+      topBtn.classList.add('bg-teal-50', 'text-teal-800', 'border-teal-200');
+      topBtn.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-[#00C4CC]"></span><span>Canva Pro Link</span>';
+    }
+    if (openActiveBtn) {
+      openActiveBtn.innerHTML = '<i data-lucide="external-link" class="w-3.5 h-3.5"></i><span>Open Canva Packaging ↗</span>';
+    }
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function launchCanvaTemplate(query) {
+  window.open('https://www.canva.com/search?q=' + encodeURIComponent(query), '_blank');
+  showToast(`Opening Canva templates for "${query}"...`);
+}
+
+function openActiveCanvaDesign() {
+  const savedUrl = localStorage.getItem('labelcheck_canva_url');
+  if (savedUrl && savedUrl.startsWith('http')) {
+    window.open(savedUrl, '_blank');
+  } else {
+    window.open('https://www.canva.com/search?q=packaging+label+design', '_blank');
+  }
+}
+
+function importCanvaImageUrl() {
+  const urlInput = document.getElementById('input-canva-image-url');
+  const url = urlInput ? urlInput.value.trim() : '';
+
+  if (!url) {
+    alert('Please enter or paste a Canva image or export URL.');
+    return;
+  }
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    state.scannedImages = [{
+      id: 'canva_' + Date.now(),
+      name: 'Canva Pro Packaging Proof',
+      dataUrl: url,
+      imgElement: img,
+      ocrText: '',
+      words: [],
+      regions: []
+    }];
+    state.activeImageIndex = 0;
+    state.currentImageSource = img;
+    state.currentImageDataUrl = url;
+    state.currentSample = null;
+
+    displayImageOnCanvas(img, []);
+    renderMultiSurfaceStrip();
+    showScanPermissionCard();
+    closeCanvaModal();
+    showToast('Canva packaging proof imported! Grant permission to scan.');
+  };
+  img.onerror = () => {
+    alert('Could not load image directly from this URL due to cross-origin restrictions. Tip: In Canva Pro, click Share -> Download (PNG), then drag the file here or press Ctrl+V to paste directly!');
+  };
+  img.src = url;
+}
+
+function getSuggestedCompliantSnippet(issueName) {
+  const lower = (issueName || '').toLowerCase();
+  if (lower.includes('maximum retail price') || lower.includes('mrp')) {
+    return 'MRP: ₹ 0.00 (INCL. OF ALL TAXES)';
+  } else if (lower.includes('unit sale price') || lower.includes('usp')) {
+    return 'USP: ₹ 0.00 / g';
+  } else if (lower.includes('net quantity') || lower.includes('net qty')) {
+    return 'NET QTY: 1 N';
+  } else if (lower.includes('consumer care') || lower.includes('helpline') || lower.includes('complaints')) {
+    return 'FOR COMPLAINTS: Consumer Care Officer, Tel: 1800-000-0000, Email: care@brand.in, Address: Same as Mfg';
+  } else if (lower.includes('date') || lower.includes('mfd') || lower.includes('manufacture')) {
+    return 'MFD: 09/2026 | BEST BEFORE 12 MONTHS FROM MANUFACTURE';
+  } else if (lower.includes('country of origin')) {
+    return 'COUNTRY OF ORIGIN: India';
+  } else if (lower.includes('batch')) {
+    return 'BATCH NO: B-2026-01';
+  } else if (lower.includes('manufacturer') || lower.includes('packer')) {
+    return 'MANUFACTURED & MARKETED BY: Brand Packaging Pvt Ltd, Plot 10, Industrial Area, Bangalore - 560058';
+  }
+  return `${issueName}: [Compliant Declaration per Legal Metrology Rules, 2011]`;
+}
+
+function fixIssueInCanva(issueName, legalRef) {
+  const snippet = getSuggestedCompliantSnippet(issueName);
+  navigator.clipboard.writeText(snippet).then(() => {
+    showToast(`Copied snippet: "${snippet.slice(0, 35)}..." to clipboard! Opening Canva Pro...`);
+  }).catch(() => {
+    showToast(`Opening Canva Pro to fix ${issueName}...`);
+  });
+
+  setTimeout(() => {
+    openActiveCanvaDesign();
+  }, 400);
+}
+
+function initCanvaIntegration() {
+  const savedUrl = localStorage.getItem('labelcheck_canva_url');
+  updateCanvaStatusUI(!!(savedUrl && savedUrl.startsWith('http')));
+
+  // Global clipboard paste listener: Pressing Ctrl+V anywhere with a copied Canva image immediately stages it!
+  window.addEventListener('paste', e => {
+    const activeTagName = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+    if (activeTagName === 'textarea' || activeTagName === 'input') {
+      return; // Do not intercept normal typing paste
+    }
+
+    const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.indexOf('image') !== -1) {
+        const file = items[i].getAsFile();
+        if (file) {
+          handleUploadedFiles([file], state.scannedImages && state.scannedImages.length > 0 && state.auditPhase === 'awaiting_decision');
+          showToast('Pasted image proof from clipboard! Grant permission to scan.');
+        }
+        break;
+      }
+    }
+  });
 }

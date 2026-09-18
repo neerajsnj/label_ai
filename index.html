@@ -54,231 +54,242 @@
 </head>
 <body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col antialiased selection:bg-teal-100 selection:text-teal-900">
 
-  <!-- 1. TOP STATUTORY BANNER -->
-  <div class="statutory-banner text-slate-300 text-xs py-1.5 px-4 sm:px-6 lg:px-8 flex flex-wrap justify-between items-center gap-2">
-    <div class="flex items-center space-x-2">
-      <span class="pulse-indicator"></span>
-      <span class="font-semibold text-slate-200 tracking-wide">Legal Metrology (Packaged Commodities) Rules, 2011 Regulatory Audit Engine</span>
-      <span class="text-slate-600 hidden md:inline">|</span>
-      <span class="text-slate-400 hidden md:inline font-normal">Department of Consumer Affairs • Standard SI Verification</span>
+  <!-- 1. SLIM GOVERNMENT UTILITY BAR (~36px) -->
+  <div class="gov-utility-bar">
+    <div class="gov-statute-label">
+      <span class="gov-statute-dot"></span>
+      <span>Legal Metrology (Packaged Commodities) Rules, 2011 • Regulatory Audit Desk</span>
     </div>
-    <div class="flex items-center space-x-3">
-      <div class="flex items-center space-x-2">
-        <span class="text-slate-400 text-[11px] font-medium hidden sm:inline">Active Persona:</span>
-        <select id="user-persona-select" class="bg-slate-800/90 text-xs text-emerald-400 font-medium rounded-lg px-2.5 py-1 border border-slate-700/80 focus:ring-1 focus:ring-teal-500 focus:outline-none transition cursor-pointer">
-          <option value="inspector">🔍 Inspector / Legal Metrology Officer</option>
-          <option value="retailer">🏪 Retailer / Store Quality Manager</option>
-          <option value="manufacturer">🏭 Manufacturer / Packaging Proof Auditor</option>
-          <option value="consumer">👤 Consumer / Citizen Vigilance</option>
-        </select>
-      </div>
+    <div class="gov-persona-wrapper">
+      <button id="btn-top-canva" onclick="openCanvaModal()" class="flex items-center gap-1.5 text-[11px] font-semibold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-2.5 py-0.5 rounded transition" title="Link Canva Pro Account or Packaging Design">
+        <span class="inline-block w-2 h-2 rounded-full bg-[#00C4CC]"></span>
+        <span>Canva Pro Link</span>
+      </button>
+      <span class="text-slate-300 font-light">|</span>
+      <span class="text-[11px] font-semibold text-slate-500 hidden sm:inline uppercase tracking-wider">Persona:</span>
+      <select id="user-persona-select" class="gov-persona-select">
+        <option value="inspector">🔍 Inspector / Legal Metrology Officer</option>
+        <option value="retailer">🏪 Retailer / Store Quality Manager</option>
+        <option value="manufacturer">🏭 Manufacturer / Packaging Proof Auditor</option>
+        <option value="consumer">👤 Consumer / Citizen Vigilance</option>
+      </select>
     </div>
   </div>
 
-  <!-- 2. MAIN NAVIGATION HEADER -->
+  <!-- 2. PRIMARY APP HEADER -->
   <header class="app-header">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between items-center h-16">
-        
-        <!-- Logo & Title -->
-        <div class="flex items-center space-x-3 cursor-pointer group" onclick="switchTab('scanner')">
-          <div class="header-brand-logo group-hover:scale-105 transition-transform">
-            <i data-lucide="shield-check" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <div class="flex items-center space-x-2">
-              <span class="text-lg font-black tracking-tight text-slate-900">LabelCheck <span class="text-teal-600">AI</span></span>
-              <span class="bg-teal-50 text-teal-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-teal-200 uppercase tracking-wider">v2.4 Rules 2011</span>
-            </div>
-            <p class="text-[11px] text-slate-500 font-medium -mt-0.5">Smart Packaged Commodity Compliance Checker</p>
-          </div>
+    <div class="header-container">
+      
+      <!-- Brand Lockup -->
+      <div class="brand-lockup" onclick="switchTab('scanner')">
+        <div class="brand-icon">
+          <i data-lucide="shield-check" class="w-5 h-5"></i>
         </div>
-
-        <!-- Main Navigation Tabs -->
-        <nav class="hidden lg:flex items-center space-x-1">
-          <button onclick="switchTab('scanner')" id="tab-btn-scanner" class="nav-tab active">
-            <i data-lucide="scan-line" class="w-4 h-4 mr-1.5 text-teal-600"></i>
-            <span>Scanner & OCR</span>
-          </button>
-          <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="nav-tab">
-            <i data-lucide="clipboard-check" class="w-4 h-4 mr-1.5 text-slate-500"></i>
-            <span>Compliance Audit</span>
-            <span id="nav-score-badge" class="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">96%</span>
-          </button>
-          <button onclick="switchTab('history')" id="tab-btn-history" class="nav-tab">
-            <i data-lucide="history" class="w-4 h-4 mr-1.5 text-slate-500"></i>
-            <span>Scan History</span>
-          </button>
-          <button onclick="switchTab('admin')" id="tab-btn-admin" class="nav-tab">
-            <i data-lucide="sliders" class="w-4 h-4 mr-1.5 text-slate-500"></i>
-            <span>Rule Configurator</span>
-          </button>
-          <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="nav-tab">
-            <i data-lucide="bar-chart-2" class="w-4 h-4 mr-1.5 text-slate-500"></i>
-            <span>Analytics</span>
-          </button>
-          <button onclick="switchTab('rules-guide')" id="tab-btn-rules-guide" class="nav-tab">
-            <i data-lucide="book-open" class="w-4 h-4 mr-1.5 text-slate-500"></i>
-            <span>LMPC Rules Guide</span>
-          </button>
-        </nav>
-
-        <!-- Right Header Action Area -->
-        <div class="flex items-center space-x-3">
-          <!-- Compliance percentage indicator -->
-          <div class="hidden sm:flex items-center">
-            <div id="header-compliance-pill" class="header-score-badge cursor-pointer hover:bg-emerald-100 transition" onclick="switchTab('dashboard')" title="View current compliance report">
-              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span id="header-compliance-text">96% COMPLIANT</span>
-            </div>
+        <div>
+          <div class="flex items-center">
+            <span class="brand-title">LabelCheck <span>AI</span></span>
+            <span class="brand-badge">Rules 2011</span>
           </div>
-
-          <!-- Quick Test Demo Trigger -->
-          <button onclick="loadSampleCommodity('sample_food_compliant')" class="hidden xl:flex items-center space-x-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-lg transition border border-slate-200" title="Load realistic test commodity">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
-            <span>Instant Demo</span>
-          </button>
-
-          <!-- New Scan Button -->
-          <button onclick="switchTab('scanner')" class="btn-primary flex items-center space-x-1.5 text-xs px-3.5 py-2">
-            <i data-lucide="scan" class="w-3.5 h-3.5"></i>
-            <span>New Scan</span>
-          </button>
-
-          <!-- Mobile Hamburger Menu Button -->
-          <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="lg:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none">
-            <i data-lucide="menu" class="w-5 h-5"></i>
-          </button>
+          <p class="text-[11px] text-slate-500 font-medium -mt-0.5 hidden sm:block">Legal Metrology Compliance Checker</p>
         </div>
-
       </div>
 
-      <!-- Mobile Navigation Menu Dropdown -->
-      <div id="mobile-nav" class="hidden lg:hidden py-3 border-t border-slate-200 space-y-1">
-        <button onclick="switchTab('scanner'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
-          <i data-lucide="scan-line" class="w-4 h-4 text-teal-600"></i>
+      <!-- Horizontal Underline Navigation (No Boxed Tabs) -->
+      <nav class="hidden lg:flex header-nav">
+        <button onclick="switchTab('scanner')" id="tab-btn-scanner" class="nav-tab active">
+          <i data-lucide="scan-line" class="w-4 h-4 text-teal-700"></i>
           <span>Scanner & OCR</span>
         </button>
-        <button onclick="switchTab('dashboard'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center justify-between">
-          <div class="flex items-center space-x-2">
-            <i data-lucide="clipboard-check" class="w-4 h-4 text-slate-500"></i>
-            <span>Compliance Audit</span>
-          </div>
-          <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">96%</span>
+        <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="nav-tab">
+          <i data-lucide="clipboard-check" class="w-4 h-4 text-slate-500"></i>
+          <span>Compliance Audit</span>
+          <span id="nav-score-badge" class="ml-1.5 text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">96%</span>
         </button>
-        <button onclick="switchTab('history'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
+        <button onclick="switchTab('history')" id="tab-btn-history" class="nav-tab">
           <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>
           <span>Scan History</span>
         </button>
-        <button onclick="switchTab('admin'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
+        <button onclick="switchTab('admin')" id="tab-btn-admin" class="nav-tab">
           <i data-lucide="sliders" class="w-4 h-4 text-slate-500"></i>
           <span>Rule Configurator</span>
         </button>
-        <button onclick="switchTab('analytics'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
+        <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="nav-tab">
           <i data-lucide="bar-chart-2" class="w-4 h-4 text-slate-500"></i>
           <span>Analytics</span>
         </button>
-        <button onclick="switchTab('rules-guide'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
+        <button onclick="switchTab('rules-guide')" id="tab-btn-rules-guide" class="nav-tab">
           <i data-lucide="book-open" class="w-4 h-4 text-slate-500"></i>
           <span>LMPC Rules Guide</span>
         </button>
+      </nav>
+
+      <!-- Right Header Actions -->
+      <div class="header-actions">
+        <div class="hidden sm:flex items-center">
+          <div id="header-compliance-pill" class="header-score-badge" onclick="switchTab('dashboard')" title="View current compliance report">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span id="header-compliance-text">96% COMPLIANT</span>
+          </div>
+        </div>
+
+        <button onclick="loadSampleCommodity('sample_food_compliant')" class="btn-secondary btn-compact hidden xl:inline-flex" title="Load realistic test commodity">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-600"></i>
+          <span>Instant Demo</span>
+        </button>
+
+        <button onclick="switchTab('scanner')" class="btn-primary btn-compact">
+          <i data-lucide="scan" class="w-3.5 h-3.5"></i>
+          <span>New Scan</span>
+        </button>
+
+        <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="lg:hidden btn-ghost p-1.5 rounded-lg">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
       </div>
 
+    </div>
+
+    <!-- Mobile Navigation Menu Dropdown -->
+    <div id="mobile-nav" class="hidden lg:hidden py-3 px-4 border-t border-slate-200 bg-white space-y-1">
+      <button onclick="switchTab('scanner'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
+        <i data-lucide="scan-line" class="w-4 h-4 text-teal-600"></i>
+        <span>Scanner & OCR</span>
+      </button>
+      <button onclick="switchTab('dashboard'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <i data-lucide="clipboard-check" class="w-4 h-4 text-slate-500"></i>
+          <span>Compliance Audit</span>
+        </div>
+        <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">96%</span>
+      </button>
+      <button onclick="switchTab('history'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
+        <i data-lucide="history" class="w-4 h-4 text-slate-500"></i>
+        <span>Scan History</span>
+      </button>
+      <button onclick="switchTab('admin'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
+        <i data-lucide="sliders" class="w-4 h-4 text-slate-500"></i>
+        <span>Rule Configurator</span>
+      </button>
+      <button onclick="switchTab('analytics'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
+        <i data-lucide="bar-chart-2" class="w-4 h-4 text-slate-500"></i>
+        <span>Analytics</span>
+      </button>
+      <button onclick="switchTab('rules-guide'); toggleMobileMenu();" class="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-teal-50 hover:text-teal-800 rounded-md flex items-center space-x-2">
+        <i data-lucide="book-open" class="w-4 h-4 text-slate-500"></i>
+        <span>LMPC Rules Guide</span>
+      </button>
     </div>
   </header>
 
   <!-- MAIN VIEWPORT CONTAINER -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+  <main class="flex-1 max-w-[1320px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-4">
 
     <!-- ================================================================= -->
     <!-- TAB 1: SCANNER & OCR EXTRACTOR                                    -->
     <!-- ================================================================= -->
     <section id="view-scanner" class="space-y-6">
 
-      <!-- 2. HERO / COMPACT DASHBOARD STATUS SECTION -->
-      <div class="hero-status-grid">
-        <!-- Card 1: Inspector Screening Mode / Persona Status -->
-        <div id="persona-banner" class="hero-status-card hero-status-primary flex items-start space-x-3.5">
-          <div class="p-2.5 bg-teal-600 text-white rounded-xl shadow-sm flex-shrink-0">
-            <i data-lucide="badge-check" class="w-5 h-5"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <h3 id="persona-title" class="text-sm font-bold text-slate-900 truncate">Inspector Screening Mode Active</h3>
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
-                OCR Ready
-              </span>
-            </div>
-            <p id="persona-desc" class="text-xs text-slate-600 mt-1 leading-relaxed line-clamp-2">
-              Rapidly scan retail package proofs to identify statutory declaration defects under Section 36 of Legal Metrology Act, 2009.
-            </p>
-          </div>
+      <!-- 3. PAGE TITLE BLOCK (Scan context, breadcrumb, and status pill on one line) -->
+      <div class="page-title-strip">
+        <div class="breadcrumb-lockup">
+          <span class="breadcrumb-root">Workspace</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-root">Retail Package Proofs</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-active">LMPC Rule 6 Statutory Audit</span>
         </div>
-
-        <!-- Card 2: Current Compliance Score -->
-        <div class="hero-status-card flex items-center justify-between">
-          <div>
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Compliance Score</span>
-            <div id="hero-compliance-score" class="hero-metric-value text-emerald-600 mt-0.5">96%</div>
-            <span class="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Preliminary Pass</span>
-          </div>
-          <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-            <i data-lucide="shield" class="w-5 h-5"></i>
-          </div>
-        </div>
-
-        <!-- Card 3: Violations / Defects Detected -->
-        <div class="hero-status-card flex items-center justify-between">
-          <div>
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Violations Found</span>
-            <div id="hero-violations-count" class="hero-metric-value text-slate-800 mt-0.5">0</div>
-            <span class="text-[11px] font-medium text-slate-500">Sec. 36 Actionable</span>
-          </div>
-          <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
-            <i data-lucide="alert-circle" class="w-5 h-5"></i>
-          </div>
-        </div>
-
-        <!-- Card 4: Total Scanned Packages -->
-        <div class="hero-status-card flex items-center justify-between">
-          <div>
-            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Scanned Packages</span>
-            <div id="hero-scanned-count" class="hero-metric-value text-teal-700 mt-0.5">7</div>
-            <span class="text-[11px] font-medium text-teal-700">Audit History Log</span>
-          </div>
-          <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center border border-teal-100">
-            <i data-lucide="package" class="w-5 h-5"></i>
+        <div class="flex items-center gap-3">
+          <button onclick="openCanvaModal()" class="flex items-center gap-1.5 text-xs text-slate-600 hover:text-teal-800 font-medium px-2 py-1 rounded bg-white border border-slate-200 transition" title="Open Canva Pro Packaging Linker">
+            <span class="inline-block w-2 h-2 rounded-full bg-[#00C4CC]"></span>
+            <span id="canva-link-status-label">Canva: Not Linked</span>
+          </button>
+          <div class="page-context-pill">
+            <span class="status-dot-pulse"></span>
+            <span>Section 36 LMA Screening Active</span>
           </div>
         </div>
       </div>
 
-      <!-- 3. QUICK TEST SECTION (Horizontally Scrollable Card Layout) -->
-      <div class="quick-test-wrapper">
-        <div class="flex items-center justify-between mb-2.5">
-          <div class="flex items-center space-x-2">
-            <div class="p-1 rounded bg-teal-50 text-teal-700">
-              <i data-lucide="sparkles" class="w-4 h-4"></i>
-            </div>
-            <div>
-              <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Quick Test: Curated Packaged Commodities</h2>
-              <p class="text-[11px] text-slate-500">Select any realistic package specimen to run an instant regulatory verification:</p>
+      <!-- 4. KPI STRIP (4 Equal Metric Cards in a Single Grid Row, 20px padding, 32px tabular value) -->
+      <div class="kpi-strip">
+        <!-- Card 1: Persona / Mode -->
+        <div id="persona-banner" class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Screening Mode</span>
+            <i data-lucide="badge-check" class="kpi-icon text-teal-700"></i>
+          </div>
+          <div>
+            <div id="persona-title" class="kpi-value text-slate-900">Sec. 36</div>
+            <div id="persona-desc" class="kpi-context truncate">Inspector Screening Active</div>
+          </div>
+        </div>
+
+        <!-- Card 2: Compliance Score -->
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Compliance Score</span>
+            <i data-lucide="shield" class="kpi-icon text-emerald-600"></i>
+          </div>
+          <div>
+            <div id="hero-compliance-score" class="kpi-value text-emerald-600">96%</div>
+            <div class="kpi-context text-emerald-700">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>Preliminary Pass · 11 Rules</span>
             </div>
           </div>
-          <!-- Horizontal Scroll Controls -->
-          <div class="flex items-center space-x-1">
-            <button onclick="scrollQuickTest(-280)" class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="Scroll left">
+        </div>
+
+        <!-- Card 3: Violations Found -->
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Violations Detected</span>
+            <i data-lucide="alert-circle" class="kpi-icon text-rose-500"></i>
+          </div>
+          <div>
+            <div id="hero-violations-count" class="kpi-value text-slate-800">0</div>
+            <div class="kpi-context text-slate-500">
+              <span>0 Mandatory Defects (Rule 6)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Total Scanned Packages -->
+        <div class="kpi-card">
+          <div class="kpi-card-header">
+            <span class="kpi-label">Scanned Packages</span>
+            <i data-lucide="package" class="kpi-icon text-teal-700"></i>
+          </div>
+          <div>
+            <div id="hero-scanned-count" class="kpi-value text-teal-800">7</div>
+            <div class="kpi-context text-slate-500">
+              <span>Stored in Local Audit Log</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. CURATED SPECIMENS (Horizontal Scroll Rail with Snap Points & Fade Masking) -->
+      <div class="specimens-section">
+        <div class="specimens-header">
+          <div class="specimens-title-group">
+            <i data-lucide="sparkles" class="w-4 h-4 text-teal-700"></i>
+            <span class="specimens-title">Curated Packaging Specimens</span>
+            <span class="specimens-sub hidden sm:inline">• Test realistic label proofs against Rule 6</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="scrollQuickTest(-280)" class="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="Scroll left">
               <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
             </button>
-            <button onclick="scrollQuickTest(280)" class="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="Scroll right">
+            <button onclick="scrollQuickTest(280)" class="p-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 transition" title="Scroll right">
               <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
             </button>
           </div>
         </div>
 
-        <!-- Dynamic Horizontal Scroll Track -->
-        <div id="samples-container" class="quick-test-track no-scrollbar">
-          <!-- Dynamically injected sample commodity cards -->
+        <div class="specimens-rail-wrapper">
+          <div id="samples-container" class="specimens-scroll-track no-scrollbar">
+            <!-- Dynamically injected sample commodity cards -->
+          </div>
         </div>
       </div>
 
@@ -319,6 +330,10 @@
               <button id="btn-add-angle-nav" onclick="document.getElementById('add-angle-input').click()" class="flex items-center space-x-1.5 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold px-3 py-2 rounded-lg border border-emerald-200 transition">
                 <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-600"></i>
                 <span>+ Add Bottle Cap / Angle</span>
+              </button>
+              <button id="btn-open-canva-modal" onclick="openCanvaModal()" class="flex items-center space-x-1.5 text-xs bg-white hover:bg-slate-50 text-slate-700 font-semibold px-3 py-2 rounded-lg border border-slate-200 transition" title="Link Canva Pro Packaging Design or Paste Screenshot">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#00C4CC]"></span>
+                <span>Canva Link</span>
               </button>
             </div>
           </div>
@@ -1108,6 +1123,96 @@
       <div class="flex justify-end space-x-2 pt-2 border-t border-slate-200">
         <button onclick="closeAddRuleModal()" class="btn-secondary px-4 py-2 text-xs">Cancel</button>
         <button onclick="saveCustomRule()" class="btn-primary px-4 py-2 text-xs">Add Rule</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CANVA PRO INTEGRATION MODAL -->
+  <div id="modal-canva" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
+    <div class="modal-content max-w-xl w-full p-6 space-y-4">
+      <div class="flex justify-between items-start pb-3 border-b border-slate-200">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-[#00C4CC] text-white flex items-center justify-center font-black text-sm shadow-xs">
+            C
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span>Canva Pro Packaging Integration</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-200">Pro Connected</span>
+            </h3>
+            <p class="text-xs text-slate-500">Link your Canva packaging design URL or paste designs directly for statutory audit.</p>
+          </div>
+        </div>
+        <button onclick="closeCanvaModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <!-- 1. Active Canva Design URL -->
+        <div class="space-y-1.5">
+          <label for="input-canva-design-url" class="font-bold text-slate-700 block">
+            Active Canva Packaging Design / Template URL:
+          </label>
+          <div class="flex gap-2">
+            <input type="text" id="input-canva-design-url" placeholder="https://www.canva.com/design/DA.../view or edit link" class="flex-1 text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+            <button onclick="saveCanvaDesignLink()" class="btn-primary text-xs px-3 py-2 whitespace-nowrap">
+              Save Link
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500">
+            Once saved, clicking <em>"Fix in Canva"</em> next to any statutory defect will open your active design immediately!
+          </p>
+        </div>
+
+        <!-- 2. Quick Launch Canva Packaging Templates -->
+        <div class="pt-2 border-t border-slate-200">
+          <label class="font-bold text-slate-700 block mb-2">
+            Quick Launch Canva Packaging Workspace:
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button type="button" onclick="launchCanvaTemplate('bottle label packaging')" class="flex items-center justify-between p-2 rounded-lg border border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 transition text-left">
+              <span class="font-semibold text-slate-800">🍾 Bottle Labels</span>
+              <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i>
+            </button>
+            <button type="button" onclick="launchCanvaTemplate('product box packaging carton')" class="flex items-center justify-between p-2 rounded-lg border border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 transition text-left">
+              <span class="font-semibold text-slate-800">📦 Box Cartons</span>
+              <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i>
+            </button>
+            <button type="button" onclick="launchCanvaTemplate('pouch sachet packaging label')" class="flex items-center justify-between p-2 rounded-lg border border-slate-200 hover:border-teal-500 hover:bg-teal-50/50 transition text-left">
+              <span class="font-semibold text-slate-800">🛍️ Pouch / Sachet</span>
+              <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Direct Image URL Import or Clipboard Paste -->
+        <div class="pt-2 border-t border-slate-200 space-y-2">
+          <label class="font-bold text-slate-700 block">
+            Import Exported Artwork from Canva:
+          </label>
+          <div class="flex gap-2">
+            <input type="text" id="input-canva-image-url" placeholder="Paste Canva image / export download URL..." class="flex-1 text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+            <button onclick="importCanvaImageUrl()" class="btn-secondary text-xs px-3 py-2 whitespace-nowrap">
+              Import & Stage
+            </button>
+          </div>
+          <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-start gap-2">
+            <i data-lucide="clipboard" class="w-4 h-4 text-teal-700 flex-shrink-0 mt-0.5"></i>
+            <div>
+              <strong class="text-slate-800">Pro Tip: Clipboard Paste Active</strong>
+              <p class="mt-0.5">In Canva Pro, copy any label element or export image to your clipboard, then press <kbd class="px-1.5 py-0.5 rounded bg-white border border-slate-300 font-mono text-[10px]">Ctrl + V</kbd> anywhere on this page to immediately stage it for compliance scanning!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center pt-3 border-t border-slate-200">
+        <button id="btn-open-active-canva" onclick="openActiveCanvaDesign()" class="btn-ghost text-xs text-teal-800 hover:text-teal-950 flex items-center gap-1 font-semibold">
+          <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+          <span>Open My Canva Workspace ↗</span>
+        </button>
+        <button onclick="closeCanvaModal()" class="btn-secondary px-4 py-2 text-xs">Close</button>
       </div>
     </div>
   </div>
