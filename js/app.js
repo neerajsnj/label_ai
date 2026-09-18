@@ -16,7 +16,8 @@ const state = {
   checklistFilter: 'all',
   cameraStream: null,
   scannedImages: [],
-  activeImageIndex: 0
+  activeImageIndex: 0,
+  auditPhase: 'empty'
 };
 
 // Sub-modules instances
@@ -461,7 +462,7 @@ async function runMultiImageOcrPipeline() {
 
   if (ocrStatusPill) {
     ocrStatusPill.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
-    ocrStatusPill.textContent = `Scanned ${total} Angle${total > 1 ? 's' : ''} (Ready)`;
+    ocrStatusPill.textContent = `Scanned ${total} Angle${total > 1 ? 's' : ''} (Decision Needed)`;
   }
 
   if (beam) beam.classList.add('hidden');
@@ -469,7 +470,178 @@ async function runMultiImageOcrPipeline() {
     if (progressCont) progressCont.classList.add('hidden');
   }, 600);
 
-  evaluateCompliance(false);
+  // Present the post-scan decision step: asking user whether to finalize or scan another surface
+  presentPostScanDecisionStep();
+}
+
+/**
+ * Display the Staged Permission Card asking user permission to start the scan
+ */
+function showScanPermissionCard() {
+  const permCard = document.getElementById('scan-permission-card');
+  const decisionCard = document.getElementById('post-scan-decision-card');
+  const countBadge = document.getElementById('permission-photos-count');
+  const btnLabel = document.getElementById('btn-confirm-start-scan-label');
+  const descText = document.getElementById('permission-desc-text');
+
+  if (decisionCard) decisionCard.classList.add('hidden');
+  if (!permCard) return;
+
+  const count = state.scannedImages ? state.scannedImages.length : 0;
+  if (count === 0) {
+    permCard.classList.add('hidden');
+    return;
+  }
+
+  const active = state.scannedImages[state.activeImageIndex] || state.scannedImages[0];
+  const hasExistingScannedText = state.scannedImages.some(img => img.ocrText && img.ocrText.trim().length > 0);
+
+  permCard.classList.remove('hidden');
+  permCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  if (countBadge) {
+    countBadge.textContent = `${count} Photo${count > 1 ? 's' : ''} Staged`;
+  }
+
+  if (btnLabel) {
+    if (hasExistingScannedText) {
+      btnLabel.textContent = `Scan Added Surface (${active ? active.name : 'New Photo'})`;
+    } else {
+      btnLabel.textContent = `Start Compliance Scan (${count} Photo${count > 1 ? 's' : ''})`;
+    }
+  }
+
+  if (descText) {
+    if (hasExistingScannedText) {
+      descText.innerHTML = `<strong>Additional packaging surface staged: ${escapeHtml(active ? active.name : 'New Surface')}</strong> (${count} total surfaces). Click below to grant permission and scan this surface to incorporate into the compliance analysis.`;
+    } else if (count === 1) {
+      descText.innerHTML = `<strong>1 packaging photo staged</strong>. You can give permission to scan this photo now, or add more photos first (e.g. bottle top stamp, back panel) before evaluating.`;
+    } else {
+      descText.innerHTML = `<strong>${count} packaging photos staged</strong> (e.g. Main Label, Bottle Top/Cap Stamp). Click below to give permission and run the compliance scan across all surfaces.`;
+    }
+  }
+
+  const ocrStatusPill = document.getElementById('ocr-status-pill');
+  if (ocrStatusPill) {
+    ocrStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200';
+    ocrStatusPill.textContent = 'Waiting for Scan Permission';
+  }
+
+  state.auditPhase = 'staged';
+}
+
+/**
+ * User confirmed: Run OCR scan on staged images
+ */
+function startUserConfirmedScan() {
+  const permCard = document.getElementById('scan-permission-card');
+  if (permCard) permCard.classList.add('hidden');
+
+  state.auditPhase = 'scanning';
+  runMultiImageOcrPipeline();
+}
+
+/**
+ * Clear staged photos and reset scanner view
+ */
+function clearStagedPhotos() {
+  state.scannedImages = [];
+  state.activeImageIndex = 0;
+  state.currentImageSource = null;
+  state.currentImageDataUrl = null;
+  state.currentSample = null;
+  state.lastScanData = null;
+  state.auditPhase = 'empty';
+
+  const permCard = document.getElementById('scan-permission-card');
+  const decisionCard = document.getElementById('post-scan-decision-card');
+  const strip = document.getElementById('multi-surface-strip');
+  const banner = document.getElementById('stamp-guidance-banner');
+  const canvasCont = document.getElementById('canvas-container');
+  const uploadPrompt = document.getElementById('upload-prompt');
+  const textarea = document.getElementById('ocr-raw-text');
+  const ocrStatusPill = document.getElementById('ocr-status-pill');
+
+  if (permCard) permCard.classList.add('hidden');
+  if (decisionCard) decisionCard.classList.add('hidden');
+  if (strip) strip.classList.add('hidden');
+  if (banner) banner.classList.add('hidden');
+  if (canvasCont) canvasCont.classList.add('hidden');
+  if (uploadPrompt) uploadPrompt.classList.remove('hidden');
+  if (textarea) textarea.value = '';
+
+  if (ocrStatusPill) {
+    ocrStatusPill.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200';
+    ocrStatusPill.textContent = 'Ready for Extraction';
+  }
+
+  showToast('Cleared staged photos.');
+}
+
+/**
+ * Post-Scan Decision Step
+ * Asks user whether to finalize compliance results or scan/add another packaging angle first
+ */
+function presentPostScanDecisionStep() {
+  const permCard = document.getElementById('scan-permission-card');
+  if (permCard) permCard.classList.add('hidden');
+
+  const decisionCard = document.getElementById('post-scan-decision-card');
+  const stampNote = document.getElementById('post-scan-stamp-note');
+  const titleEl = document.getElementById('post-scan-decision-title');
+  const descEl = document.getElementById('post-scan-decision-desc');
+  const rawText = (document.getElementById('ocr-raw-text')?.value || '');
+  const hasStampRef = /(?:refer\s*to\s*stamp(?:\s*on\s*(?:bottle|cap|neck|crown))?|stamp\s*on\s*(?:bottle|cap|neck|crown)|see\s*(?:cap|neck|crown|bottle|stamp))/i.test(rawText);
+  const count = state.scannedImages ? state.scannedImages.length : 1;
+
+  if (titleEl) {
+    titleEl.textContent = count === 1 ?
+      'Surface 1 Scanned Successfully — Next Action' :
+      `${count} Packaging Surfaces Scanned — Next Action`;
+  }
+
+  if (descEl) {
+    if (count === 1) {
+      descEl.innerHTML = `Extracted text from the initial surface. Do you want to <strong class="text-blue-950">generate the final compliance result now</strong>, or <strong class="text-blue-950">scan other images first</strong> (e.g. bottle cap stamp, back panel, ingredients) to combine all declarations?`;
+    } else {
+      descEl.innerHTML = `Extracted text from all <strong>${count} packaging surfaces</strong>. Do you want to <strong class="text-blue-950">generate the final compliance result now</strong>, or <strong class="text-blue-950">scan another image first</strong> before producing the final product result?`;
+    }
+  }
+
+  // Run a preliminary evaluation to update the scanner preview without saving to audit history yet
+  complianceEngine.setRules(adminStore.rules);
+  const category = document.getElementById('commodity-category')?.value || 'all';
+  const preliminaryResult = complianceEngine.evaluateCompliance(rawText, category);
+  preliminaryResult.productName = document.getElementById('input-product-name')?.value || 'Packaged Commodity';
+  preliminaryResult.category = category;
+  preliminaryResult.thumbnail = state.currentImageDataUrl;
+
+  updateDashboardUI(preliminaryResult, true); // true = preliminary preview mode
+
+  if (decisionCard) {
+    decisionCard.classList.remove('hidden');
+    decisionCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  if (stampNote) {
+    // Show notice if bottle stamp was referenced and only 1 surface has been scanned
+    stampNote.classList.toggle('hidden', !hasStampRef || count > 1);
+  }
+
+  state.auditPhase = 'awaiting_decision';
+}
+
+/**
+ * User confirmed: Finalize compliance evaluation and save audit
+ */
+function finalizeComplianceAudit(autoSwitch = false) {
+  const decisionCard = document.getElementById('post-scan-decision-card');
+  const permCard = document.getElementById('scan-permission-card');
+  if (decisionCard) decisionCard.classList.add('hidden');
+  if (permCard) permCard.classList.add('hidden');
+
+  state.auditPhase = 'finalized';
+  evaluateCompliance(autoSwitch);
 }
 
 /**
@@ -512,7 +684,7 @@ function evaluateCompliance(autoSwitch = false) {
   adminStore.addScanRecord(auditResult);
 
   // Update UI Elements in Dashboard and Scanner Views
-  updateDashboardUI(auditResult);
+  updateDashboardUI(auditResult, false);
 
   // Switch to Dashboard Tab if explicitly requested
   if (autoSwitch) {
@@ -525,7 +697,7 @@ function evaluateCompliance(autoSwitch = false) {
 /**
  * Update the Compliance Dashboard & Scanner Views with audit findings
  */
-function updateDashboardUI(data) {
+function updateDashboardUI(data, isPreliminary = false) {
   // Score gauge circle
   const scoreBar = document.getElementById('score-circle-bar');
   const scoreNum = document.getElementById('verdict-score-num');
@@ -553,14 +725,14 @@ function updateDashboardUI(data) {
 
   if (navBadge) {
     navBadge.classList.remove('hidden');
-    navBadge.textContent = `${data.score}%`;
+    navBadge.textContent = isPreliminary ? `${data.score}% (Step)` : `${data.score}%`;
     navBadge.className = data.overallStatus === 'green' ? 'ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200' :
       (data.overallStatus === 'yellow' ? 'ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200' : 'ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200');
   }
 
   if (headerText) {
     const statusWord = data.overallStatus === 'green' ? 'COMPLIANT' : (data.overallStatus === 'yellow' ? 'VERIFY' : 'NON-COMPLIANT');
-    headerText.textContent = `${data.score}% ${statusWord}`;
+    headerText.textContent = isPreliminary ? `${data.score}% (PREVIEW)` : `${data.score}% ${statusWord}`;
   }
   if (headerPill) {
     if (data.overallStatus === 'green') {
@@ -599,19 +771,31 @@ function updateDashboardUI(data) {
 
   const scScoreTitle = document.getElementById('scanner-result-score-title');
   if (scScoreTitle) {
-    const statusWord = data.overallStatus === 'green' ? 'COMPLIANT' : (data.overallStatus === 'yellow' ? 'NEEDS VERIFICATION' : 'NON-COMPLIANT');
-    scScoreTitle.textContent = `${data.score}% ${statusWord}`;
-    scScoreTitle.className = `text-2xl font-black mt-0.5 tracking-tight ${data.overallStatus === 'green' ? 'text-emerald-600' : (data.overallStatus === 'yellow' ? 'text-amber-600' : 'text-rose-600')}`;
+    if (isPreliminary) {
+      scScoreTitle.textContent = `${data.score}% (Surface Scanned)`;
+      scScoreTitle.className = `text-2xl font-black mt-0.5 tracking-tight text-blue-700`;
+    } else {
+      const statusWord = data.overallStatus === 'green' ? 'COMPLIANT' : (data.overallStatus === 'yellow' ? 'NEEDS VERIFICATION' : 'NON-COMPLIANT');
+      scScoreTitle.textContent = `${data.score}% ${statusWord}`;
+      scScoreTitle.className = `text-2xl font-black mt-0.5 tracking-tight ${data.overallStatus === 'green' ? 'text-emerald-600' : (data.overallStatus === 'yellow' ? 'text-amber-600' : 'text-rose-600')}`;
+    }
   }
 
   const scStatusText = document.getElementById('scanner-result-status-text');
   if (scStatusText) {
-    scStatusText.textContent = data.statusLabel;
+    if (isPreliminary) {
+      scStatusText.textContent = 'Preliminary scan complete. Choose whether to finalize or scan another surface below.';
+    } else {
+      scStatusText.textContent = data.statusLabel;
+    }
   }
 
   const scBadge = document.getElementById('scanner-result-badge');
   if (scBadge) {
-    if (data.overallStatus === 'green') {
+    if (isPreliminary) {
+      scBadge.className = 'px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-300';
+      scBadge.textContent = 'STEP COMPLETE';
+    } else if (data.overallStatus === 'green') {
       scBadge.className = 'px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300';
       scBadge.textContent = 'PASS';
     } else if (data.overallStatus === 'yellow') {
